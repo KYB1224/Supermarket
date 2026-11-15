@@ -15,6 +15,9 @@
         #barcode-canvas { width: 100%; max-width: 100%; height: auto; }
         .nav-item { transition: all 0.2s ease; }
         .nav-item.active { transform: translateY(-2px); }
+        /* 隱藏捲軸但保持橫向滑動流暢 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-orange-50 via-gray-50 to-orange-50 text-gray-800 min-h-screen pb-28">
@@ -36,27 +39,27 @@
     <main class="max-w-md mx-auto p-4 space-y-4 relative z-10">
         <!-- 分頁 1：商品卡列表頁 -->
         <div id="page-list" class="space-y-3.5">
-            <!-- 篩選與排序控制列 -->
-            <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-orange-100 flex gap-2.5 items-center">
-                <div class="flex-1">
-                    <label class="block text-[10px] font-bold text-gray-400 mb-0.5">面額篩選</label>
-                    <select id="filter-amount" onchange="renderCards()" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-2.5 text-xs font-bold text-gray-700 focus:outline-none focus:border-orange-500 cursor-pointer">
-                        <option value="all">全部面額</option>
-                        <option value="20">20元</option>
-                        <option value="25">25元</option>
-                        <option value="35">35元</option>
-                        <option value="50">50元</option>
-                        <option value="100">100元</option>
-                        <option value="200">200元</option>
-                    </select>
+            <!-- 質感升級：膠囊化面額篩選與排序控制面板 -->
+            <div class="bg-white/90 backdrop-blur-md p-3.5 rounded-3xl shadow-sm border border-orange-100/80 space-y-2.5">
+                <!-- 第一行：橫向滑動面額過濾標籤 -->
+                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs font-bold" id="filter-chips">
+                    <button type="button" onclick="setFilter('all', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-orange-500 text-white shadow-sm shrink-0 transition cursor-pointer">全部</button>
+                    <button type="button" onclick="setFilter('20', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">20元</button>
+                    <button type="button" onclick="setFilter('25', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">25元</button>
+                    <button type="button" onclick="setFilter('35', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">35元</button>
+                    <button type="button" onclick="setFilter('50', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">50元</button>
+                    <button type="button" onclick="setFilter('100', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">100元</button>
+                    <button type="button" onclick="setFilter('200', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">200元</button>
                 </div>
-                <div class="flex-1">
-                    <label class="block text-[10px] font-bold text-gray-400 mb-0.5">排序方式</label>
-                    <select id="sort-order" onchange="renderCards()" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-2.5 text-xs font-bold text-gray-700 focus:outline-none focus:border-orange-500 cursor-pointer">
-                        <option value="balance-desc">剩餘金額 (高到低)</option>
-                        <option value="balance-asc">剩餘金額 (低到高)</option>
-                        <option value="newest">新增時間 (最新)</option>
-                    </select>
+
+                <!-- 第二行：排序方式切換按鈕 -->
+                <div class="flex items-center justify-between pt-2 border-t border-gray-100 text-xs">
+                    <span class="text-gray-400 font-bold text-[11px]">排序</span>
+                    <div class="flex gap-1.5" id="sort-chips">
+                        <button type="button" onclick="setSort('balance-desc', this)" class="sort-btn px-3 py-1 rounded-xl bg-orange-50 text-orange-600 font-bold transition cursor-pointer">金額高 ➔ 低</button>
+                        <button type="button" onclick="setSort('balance-asc', this)" class="sort-btn px-3 py-1 rounded-xl bg-transparent text-gray-500 font-bold transition cursor-pointer hover:bg-gray-100">金額低 ➔ 高</button>
+                        <button type="button" onclick="setSort('newest', this)" class="sort-btn px-3 py-1 rounded-xl bg-transparent text-gray-500 font-bold transition cursor-pointer hover:bg-gray-100">最新新增</button>
+                    </div>
                 </div>
             </div>
 
@@ -136,8 +139,8 @@
                 <p class="text-xs text-gray-500">目前資料庫連線正常，支援雙人即時同步。</p>
                 <div class="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-xs text-orange-800 space-y-1">
                     <p class="font-bold">💡 功能說明：</p>
-                    <p>• 篩選排序：可依面額或金額高低快速整理列表。</p>
-                    <p>• 防呆機制：新增卡號時若已存在會自動攔截。</p>
+                    <p>• 膠囊篩選：上方可直接滑動點選面額快速過濾。</p>
+                    <p>• 輕鬆排序：一鍵切換金額高低或最新新增順序。</p>
                 </div>
             </div>
         </div>
@@ -238,6 +241,10 @@
         let scannerIsRunning = false;
         let wakeLock = null;
 
+        // 當前選中的篩選與排序狀態
+        let currentFilter = 'all';
+        let currentSort = 'balance-desc';
+
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('btn-close-barcode').addEventListener('click', closeBarcodeModal);
             document.getElementById('btn-close-barcode-bottom').addEventListener('click', closeBarcodeModal);
@@ -254,6 +261,26 @@
 
             fetchCards();
         });
+
+        // 點擊膠囊按鈕設定篩選
+        function setFilter(val, btn) {
+            currentFilter = val;
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.className = "filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200";
+            });
+            btn.className = "filter-btn px-3.5 py-1.5 rounded-full bg-orange-500 text-white shadow-sm shrink-0 transition cursor-pointer";
+            renderCards();
+        }
+
+        // 點擊按鈕設定排序
+        function setSort(val, btn) {
+            currentSort = val;
+            document.querySelectorAll('.sort-btn').forEach(b => {
+                b.className = "sort-btn px-3 py-1 rounded-xl bg-transparent text-gray-500 font-bold transition cursor-pointer hover:bg-gray-100";
+            });
+            btn.className = "sort-btn px-3 py-1 rounded-xl bg-orange-50 text-orange-600 font-bold transition cursor-pointer";
+            renderCards();
+        }
 
         function switchTab(tab) {
             const pageList = document.getElementById('page-list');
@@ -456,8 +483,6 @@
 
         function renderCards() {
             const listEl = document.getElementById('card-list');
-            const filterVal = document.getElementById('filter-amount').value;
-            const sortVal = document.getElementById('sort-order').value;
 
             if (cardsData.length === 0) {
                 listEl.innerHTML = `
@@ -471,17 +496,17 @@
 
             // 1. 篩選面額
             let filtered = cardsData.filter(card => {
-                if (filterVal === 'all') return true;
-                return Number(card.initial_amount) === Number(filterVal);
+                if (currentFilter === 'all') return true;
+                return Number(card.initial_amount) === Number(currentFilter);
             });
 
             // 2. 排序處理
             filtered.sort((a, b) => {
-                if (sortVal === 'balance-desc') {
+                if (currentSort === 'balance-desc') {
                     return Number(b.balance) - Number(a.balance);
-                } else if (sortVal === 'balance-asc') {
+                } else if (currentSort === 'balance-asc') {
                     return Number(a.balance) - Number(b.balance);
-                } else if (sortVal === 'newest') {
+                } else if (currentSort === 'newest') {
                     return new Date(b.created_at || 0) - new Date(a.created_at || 0);
                 }
                 return 0;
