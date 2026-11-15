@@ -15,12 +15,11 @@
         #barcode-canvas { width: 100%; max-width: 100%; height: auto; }
         .nav-item { transition: all 0.2s ease; }
         .nav-item.active { transform: translateY(-2px); }
-        /* 隱藏捲軸但保持橫向滑動流暢 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-gradient-to-br from-orange-50 via-gray-50 to-orange-50 text-gray-800 min-h-screen pb-28">
+<body class="bg-gradient-to-br from-orange-50 via-gray-50 to-orange-50 text-gray-800 min-h-screen pb-36">
 
     <!-- 頂部質感標題列 -->
     <header class="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white px-4 py-3.5 shadow-lg sticky top-0 z-30">
@@ -42,7 +41,7 @@
             <!-- 質感升級：膠囊化面額篩選與排序控制面板 -->
             <div class="bg-white/90 backdrop-blur-md p-3.5 rounded-3xl shadow-sm border border-orange-100/80 space-y-2.5">
                 <!-- 第一行：橫向滑動面額過濾標籤 -->
-                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs font-bold" id="filter-chips">
+                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-1 text-xs font-bold" id="filter-chips">
                     <button type="button" onclick="setFilter('all', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-orange-500 text-white shadow-sm shrink-0 transition cursor-pointer">全部</button>
                     <button type="button" onclick="setFilter('20', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">20元</button>
                     <button type="button" onclick="setFilter('25', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">25元</button>
@@ -54,7 +53,7 @@
 
                 <!-- 第二行：排序方式切換按鈕 -->
                 <div class="flex items-center justify-between pt-2 border-t border-gray-100 text-xs">
-                    <span class="text-gray-400 font-bold text-[11px]">排序</span>
+                    <span class="text-gray-400 font-bold text-[11px] pl-1">排序</span>
                     <div class="flex gap-1.5" id="sort-chips">
                         <button type="button" onclick="setSort('balance-desc', this)" class="sort-btn px-3 py-1 rounded-xl bg-orange-50 text-orange-600 font-bold transition cursor-pointer">金額高 ➔ 低</button>
                         <button type="button" onclick="setSort('balance-asc', this)" class="sort-btn px-3 py-1 rounded-xl bg-transparent text-gray-500 font-bold transition cursor-pointer hover:bg-gray-100">金額低 ➔ 高</button>
@@ -241,7 +240,6 @@
         let scannerIsRunning = false;
         let wakeLock = null;
 
-        // 當前選中的篩選與排序狀態
         let currentFilter = 'all';
         let currentSort = 'balance-desc';
 
@@ -262,7 +260,6 @@
             fetchCards();
         });
 
-        // 點擊膠囊按鈕設定篩選
         function setFilter(val, btn) {
             currentFilter = val;
             document.querySelectorAll('.filter-btn').forEach(b => {
@@ -272,7 +269,6 @@
             renderCards();
         }
 
-        // 點擊按鈕設定排序
         function setSort(val, btn) {
             currentSort = val;
             document.querySelectorAll('.sort-btn').forEach(b => {
@@ -494,13 +490,11 @@
                 return;
             }
 
-            // 1. 篩選面額
             let filtered = cardsData.filter(card => {
                 if (currentFilter === 'all') return true;
                 return Number(card.initial_amount) === Number(currentFilter);
             });
 
-            // 2. 排序處理
             filtered.sort((a, b) => {
                 if (currentSort === 'balance-desc') {
                     return Number(b.balance) - Number(a.balance);
