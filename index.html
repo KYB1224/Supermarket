@@ -6,8 +6,7 @@
     <title>7-11 商品卡錢包</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <!-- 使用完全支援新版 Publishable Key 的 Supabase SDK -->
+    <!-- 使用穩定的官方 Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
@@ -24,8 +23,8 @@
                 <span>商品卡錢包</span>
             </h1>
             <span id="sync-badge" class="text-[11px] text-orange-50 flex items-center gap-1.5 font-medium bg-black/15 px-2.5 py-1 rounded-full">
-                <span id="sync-dot" class="w-2 h-2 rounded-full bg-yellow-300 animate-pulse"></span>
-                <span id="sync-text">連線中...</span>
+                <span id="sync-dot" class="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span>
+                <span id="sync-text">同步中</span>
             </span>
         </div>
     </header>
@@ -38,7 +37,7 @@
                 <p class="text-xs font-bold text-gray-400 tracking-wider">共有資產總額</p>
                 <p id="total-balance" class="text-3xl font-black text-orange-600 mt-0.5">NT$ 0</p>
             </div>
-            <button type="button" id="btn-open-add" class="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-bold px-5 py-3 rounded-2xl shadow-lg shadow-orange-500/30 active:scale-95 transition flex items-center gap-1.5 z-20 cursor-pointer">
+            <button type="button" id="btn-open-add" class="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-bold px-5 py-3 rounded-2xl shadow-lg shadow-orange-500/30 active:scale-95 transition flex items-center gap-1.5 z-25 cursor-pointer">
                 <span class="text-base font-black">＋</span> 新增卡片
             </button>
         </div>
@@ -74,20 +73,6 @@
             <div class="flex justify-between items-center border-b border-gray-100 pb-3">
                 <h3 class="font-bold text-lg text-gray-800 flex items-center gap-2"><span>✨</span> 新增商品卡</h3>
                 <button type="button" id="btn-close-add" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 font-bold">✕</button>
-            </div>
-
-            <!-- 即時鏡頭掃描條碼區塊 -->
-            <div class="bg-orange-50 border border-orange-100 p-3.5 rounded-2xl space-y-2.5">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-xs font-bold text-orange-800">📷 即時掃描條碼</p>
-                        <p class="text-[11px] text-orange-600 mt-0.5">對準背面條碼即自動帶入</p>
-                    </div>
-                    <button type="button" id="scanner-btn" class="bg-orange-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow active:scale-95 transition cursor-pointer">
-                        開啟鏡頭掃描
-                    </button>
-                </div>
-                <div id="reader" class="hidden overflow-hidden rounded-xl border border-orange-200 bg-black"></div>
             </div>
 
             <form id="card-form" class="space-y-3.5">
@@ -131,152 +116,58 @@
     </div>
 
     <script>
-        // 正確對應你的專案網址與 Publishable Key
         const SUPABASE_URL = 'https://ofsssxodiefoxwpwkxdk.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_emdXSRelJ1R2H1idbmDEA_btdE-Y6d';
 
         let supabaseClient = null;
         let cardsData = [];
-        let html5QrCode = null;
-        let scannerIsRunning = false;
 
         document.getElementById('btn-open-add').addEventListener('click', () => {
             document.getElementById('add-modal').classList.remove('hidden');
         });
 
-        document.getElementById('btn-close-add').addEventListener('click', closeAddModal);
+        document.getElementById('btn-close-add').addEventListener('click', () => {
+            document.getElementById('add-modal').classList.add('hidden');
+        });
+
         document.getElementById('btn-close-barcode').addEventListener('click', () => {
             document.getElementById('barcode-modal').classList.add('hidden');
         });
 
-        document.getElementById('input-name').addEventListener('change', onCardTypeChange);
-        document.getElementById('card-form').addEventListener('submit', saveCard);
-        document.getElementById('scanner-btn').addEventListener('click', toggleScanner);
-
-        function onCardTypeChange() {
+        document.getElementById('input-name').addEventListener('change', () => {
             const nameSelect = document.getElementById('input-name').value;
             const match = nameSelect.match(/\d+/);
             if (match) {
-                const val = match[0];
-                document.getElementById('input-initial').value = val;
-                document.getElementById('input-balance').value = val;
+                document.getElementById('input-initial').value = match[0];
+                document.getElementById('input-balance').value = match[0];
             }
-        }
+        });
 
-        function closeAddModal() {
-            stopScanner();
-            document.getElementById('add-modal').classList.add('hidden');
-            document.getElementById('card-form').reset();
-            onCardTypeChange();
-        }
-
-        function updateStatus(status, text) {
-            const dot = document.getElementById('sync-dot');
-            const txt = document.getElementById('sync-text');
-            if (status === 'success') {
-                dot.className = "w-2 h-2 rounded-full bg-green-300 animate-pulse";
-                txt.innerText = text;
-            } else if (status === 'error') {
-                dot.className = "w-2 h-2 rounded-full bg-red-400";
-                txt.innerText = text;
-            } else {
-                dot.className = "w-2 h-2 rounded-full bg-yellow-300 animate-pulse";
-                txt.innerText = text;
-            }
-        }
-
-        async function toggleScanner() {
-            const readerDiv = document.getElementById('reader');
-            const btn = document.getElementById('scanner-btn');
-
-            if (scannerIsRunning) {
-                await stopScanner();
-                return;
-            }
-
-            readerDiv.classList.remove('hidden');
-            btn.innerText = "關閉鏡頭";
-            scannerIsRunning = true;
-
-            try {
-                if (!html5QrCode) {
-                    html5QrCode = new Html5Qrcode("reader");
-                }
-                await html5QrCode.start(
-                    { facingMode: "environment" },
-                    { fps: 15, qrbox: { width: 280, height: 120 } },
-                    (decodedText) => {
-                        document.getElementById('input-number').value = decodedText;
-                        stopScanner();
-                    },
-                    (errorMessage) => {}
-                );
-            } catch (err) {
-                console.error("無法開啟相機", err);
-                alert("無法開啟相機，請檢查瀏覽器相機權限。");
-                stopScanner();
-            }
-        }
-
-        async function stopScanner() {
-            if (html5QrCode && scannerIsRunning) {
-                try {
-                    await html5QrCode.stop();
-                } catch (e) {
-                    console.error(e);
-                }
-                scannerIsRunning = false;
-            }
-            document.getElementById('reader').classList.add('hidden');
-            document.getElementById('scanner-btn').innerText = "開啟鏡頭掃描";
-        }
+        document.getElementById('card-form').addEventListener('submit', saveCard);
 
         async function init() {
             try {
-                if (!window.supabase) {
-                    throw new Error('Supabase 套件載入失敗');
-                }
-                
+                if (!window.supabase) throw new Error('Supabase 載入失敗');
                 supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 await fetchCards();
-
-                supabaseClient
-                    .channel('public:seven_cards')
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'seven_cards' }, () => {
-                        fetchCards();
-                    })
-                    .subscribe((status) => {
-                        if (status === 'SUBSCRIBED') {
-                            updateStatus('success', '同步中');
-                        }
-                    });
             } catch (err) {
-                updateStatus('error', '連線中斷');
                 showError(err.message);
             }
         }
 
         async function fetchCards() {
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('連線逾時，請確認網路狀態')), 6000)
-            );
-
             try {
-                const queryPromise = supabaseClient
+                const { data, error } = await supabaseClient
                     .from('seven_cards')
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
                 if (error) throw error;
-
                 cardsData = data || [];
-                updateStatus('success', '同步中');
                 renderCards();
             } catch (err) {
-                console.error('讀取失敗:', err);
-                updateStatus('error', '連線失敗');
-                showError(err.message || '無法連線至資料庫');
+                console.error(err);
+                showError(err.message);
             }
         }
 
@@ -304,10 +195,8 @@
                 return;
             }
 
-            const sorted = [...cardsData].sort((a, b) => (b.balance > 0) - (a.balance > 0));
-
             listEl.innerHTML = '';
-            sorted.forEach(card => {
+            cardsData.forEach(card => {
                 total += Number(card.balance);
                 const isDepleted = Number(card.balance) <= 0;
 
@@ -368,15 +257,6 @@
 
         async function saveCard(e) {
             e.preventDefault();
-            if (!supabaseClient) {
-                alert('尚未連線至雲端，請重新整理網頁');
-                return;
-            }
-
-            const btn = document.getElementById('btn-submit-card');
-            btn.disabled = true;
-            btn.innerText = '儲存中...';
-
             const name = document.getElementById('input-name').value;
             const card_number = document.getElementById('input-number').value.trim();
             const initial_amount = Number(document.getElementById('input-initial').value);
@@ -386,13 +266,11 @@
                 .from('seven_cards')
                 .insert([{ name, card_number, initial_amount, balance }]);
 
-            btn.disabled = false;
-            btn.innerText = '確認儲存卡片';
-
             if (error) {
                 alert('儲存失敗：' + error.message);
             } else {
-                closeAddModal();
+                document.getElementById('add-modal').classList.add('hidden');
+                document.getElementById('card-form').reset();
                 fetchCards();
             }
         }
@@ -414,6 +292,8 @@
 
             if (error) {
                 alert('扣款更新失敗：' + error.message);
+            } else {
+                fetchCards();
             }
         }
 
@@ -426,6 +306,8 @@
 
             if (error) {
                 alert('刪除失敗：' + error.message);
+            } else {
+                fetchCards();
             }
         }
 
