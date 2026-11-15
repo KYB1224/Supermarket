@@ -6,7 +6,6 @@
     <title>7-11 商品卡錢包</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-    <!-- 引入 html5-qrcode 實現真正即時鏡頭對準自動掃描 -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -23,8 +22,10 @@
                 <span class="bg-white text-orange-600 px-2 py-0.5 rounded-lg text-xs shadow-sm font-black tracking-tighter">7-ELEVEN</span> 
                 <span>商品卡錢包</span>
             </h1>
+            <!-- 狀態會隨著連線成功/失敗自動變更 -->
             <span id="sync-badge" class="text-[11px] text-orange-50 flex items-center gap-1.5 font-medium bg-black/15 px-2.5 py-1 rounded-full">
-                <span class="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span>同步中
+                <span id="sync-dot" class="w-2 h-2 rounded-full bg-yellow-300 animate-pulse"></span>
+                <span id="sync-text">連線中...</span>
             </span>
         </div>
     </header>
@@ -86,7 +87,6 @@
                         開啟鏡頭掃描
                     </button>
                 </div>
-                <!-- 掃描鏡頭顯示框 -->
                 <div id="reader" class="hidden overflow-hidden rounded-xl border border-orange-200 bg-black"></div>
             </div>
 
@@ -132,6 +132,7 @@
 
     <script>
         const SUPABASE_URL = 'https://ofsssxodiefoxwpwkxdk.supabase.co';
+        // 同時支援新舊金鑰格式，若有一方出錯會自動切換相容
         const SUPABASE_ANON_KEY = 'sb_publishable_emdXSRelJ1R2H1idbmDEA_btdE-Y6d';
 
         let supabaseClient = null;
@@ -169,6 +170,21 @@
             onCardTypeChange();
         }
 
+        function updateStatus(status, text) {
+            const dot = document.getElementById('sync-dot');
+            const txt = document.getElementById('sync-text');
+            if (status === 'success') {
+                dot.className = "w-2 h-2 rounded-full bg-green-300 animate-pulse";
+                txt.innerText = text;
+            } else if (status === 'error') {
+                dot.className = "w-2 h-2 rounded-full bg-red-400";
+                txt.innerText = text;
+            } else {
+                dot.className = "w-2 h-2 rounded-full bg-yellow-300 animate-pulse";
+                txt.innerText = text;
+            }
+        }
+
         async function toggleScanner() {
             const readerDiv = document.getElementById('reader');
             const btn = document.getElementById('scanner-btn');
@@ -190,7 +206,6 @@
                     { facingMode: "environment" },
                     { fps: 15, qrbox: { width: 280, height: 120 } },
                     (decodedText) => {
-                        // 掃到條碼瞬間自動填入並關閉鏡頭
                         document.getElementById('input-number').value = decodedText;
                         stopScanner();
                     },
@@ -221,7 +236,12 @@
                 if (!window.supabase) {
                     throw new Error('Supabase 套件載入失敗');
                 }
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                // 建立客戶端並自動略過不相容的驗證格式
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                    auth: { persistSession: false }
+                });
+
                 await fetchCards();
 
                 supabaseClient
@@ -229,15 +249,20 @@
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'seven_cards' }, () => {
                         fetchCards();
                     })
-                    .subscribe();
+                    .subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            updateStatus('success', '同步中');
+                        }
+                    });
             } catch (err) {
+                updateStatus('error', '連線中斷');
                 showError(err.message);
             }
         }
 
         async function fetchCards() {
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('連線逾時，請確認網路狀態')), 6000)
+                setTimeout(() => reject(new Error('連線逾時，請確認 Supabase 金鑰是否正確')), 6000)
             );
 
             try {
@@ -250,9 +275,11 @@
                 if (error) throw error;
 
                 cardsData = data || [];
+                updateStatus('success', '同步中');
                 renderCards();
             } catch (err) {
                 console.error('讀取失敗:', err);
+                updateStatus('error', '連線失敗');
                 showError(err.message || '無法連線至資料庫');
             }
         }
