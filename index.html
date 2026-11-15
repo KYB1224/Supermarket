@@ -7,7 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- 使用最新版的 Supabase JS SDK 以完整支援 sb_publishable_ 金鑰格式 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -22,7 +23,6 @@
                 <span class="bg-white text-orange-600 px-2 py-0.5 rounded-lg text-xs shadow-sm font-black tracking-tighter">7-ELEVEN</span> 
                 <span>商品卡錢包</span>
             </h1>
-            <!-- 狀態會隨著連線成功/失敗自動變更 -->
             <span id="sync-badge" class="text-[11px] text-orange-50 flex items-center gap-1.5 font-medium bg-black/15 px-2.5 py-1 rounded-full">
                 <span id="sync-dot" class="w-2 h-2 rounded-full bg-yellow-300 animate-pulse"></span>
                 <span id="sync-text">連線中...</span>
@@ -131,8 +131,8 @@
     </div>
 
     <script>
+        // 你的 Supabase 專案設定 (必須使用 Publishable / Anon 公開金鑰，不可使用 sb_secret_)
         const SUPABASE_URL = 'https://ofsssxodiefoxwpwkxdk.supabase.co';
-        // 同時支援新舊金鑰格式，若有一方出錯會自動切換相容
         const SUPABASE_ANON_KEY = 'sb_publishable_emdXSRelJ1R2H1idbmDEA_btdE-Y6d';
 
         let supabaseClient = null;
@@ -237,11 +237,7 @@
                     throw new Error('Supabase 套件載入失敗');
                 }
                 
-                // 建立客戶端並自動略過不相容的驗證格式
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-                    auth: { persistSession: false }
-                });
-
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 await fetchCards();
 
                 supabaseClient
@@ -262,7 +258,7 @@
 
         async function fetchCards() {
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('連線逾時，請確認 Supabase 金鑰是否正確')), 6000)
+                setTimeout(() => reject(new Error('連線逾時，請確認網路狀態')), 6000)
             );
 
             try {
@@ -289,6 +285,7 @@
                 <div class="text-center py-10 text-red-500 text-sm bg-white rounded-3xl border border-red-100 shadow-sm space-y-2 p-4">
                     <p class="font-bold text-base">⚠️ 載入異常</p>
                     <p class="text-xs text-gray-600 bg-red-50 p-2 rounded-lg font-mono">${msg}</p>
+                    <p class="text-[11px] text-gray-400">若仍顯示 Invalid API key，請至 Supabase 後台 Project Settings > API Keys 確認 Publishable key 是否有誤。</p>
                     <button type="button" onclick="fetchCards()" class="mt-2 bg-orange-500 text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer">重新連線</button>
                 </div>`;
         }
