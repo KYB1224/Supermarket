@@ -21,25 +21,6 @@
 </head>
 <body class="bg-gradient-to-br from-orange-50 via-gray-50 to-orange-50 text-gray-800 min-h-screen pb-36">
 
-    <!-- 🔒 密碼解鎖畫面 Modal -->
-    <div id="lock-screen" class="fixed inset-0 bg-gradient-to-br from-orange-600 via-orange-500 to-amber-500 z-50 flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-5">
-            <div class="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-inner">
-                🔒
-            </div>
-            <div>
-                <h2 class="text-xl font-black text-gray-800">請輸入安全密碼</h2>
-                <p class="text-xs text-gray-400 mt-1">保護您的商品卡資產安全 (預設密碼: 711)</p>
-            </div>
-            <form id="lock-form" class="space-y-3">
-                <input type="password" id="lock-password" inputmode="numeric" placeholder="請輸入密碼" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 text-center text-lg font-mono tracking-widest focus:outline-none focus:border-orange-500 focus:bg-white transition">
-                <button type="submit" class="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-orange-500/30 active:scale-98 transition cursor-pointer">
-                    解鎖錢包
-                </button>
-            </form>
-        </div>
-    </div>
-
     <!-- 頂部質感標題列 -->
     <header class="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white px-4 py-3.5 shadow-lg sticky top-0 z-30">
         <div class="max-w-md mx-auto flex items-center justify-between">
@@ -57,7 +38,6 @@
     <main class="max-w-md mx-auto p-4 space-y-4 relative z-10">
         <!-- 分頁 1：商品卡列表頁 -->
         <div id="page-list" class="space-y-3.5">
-            <!-- 膠囊化面額篩選與排序控制面板 -->
             <div class="bg-white/90 backdrop-blur-md p-3.5 rounded-3xl shadow-sm border border-orange-100/80 space-y-2.5">
                 <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-1 text-xs font-bold" id="filter-chips">
                     <button type="button" onclick="setFilter('all', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-orange-500 text-white shadow-sm shrink-0 transition cursor-pointer">全部</button>
@@ -148,9 +128,9 @@
             </div>
         </div>
 
-        <!-- 分頁 3：設定頁（含總金額統計面板、刪除回收筒與密碼修改） -->
+        <!-- 分頁 3：設定頁 -->
         <div id="page-settings" class="hidden space-y-4">
-            <!-- 📊 總金額與卡數統計面板 (移至設定分頁) -->
+            <!-- 📊 總金額與卡數統計面板 -->
             <div class="bg-gradient-to-br from-orange-500 to-amber-500 text-white rounded-3xl p-5 shadow-lg shadow-orange-500/20 flex justify-between items-center">
                 <div>
                     <p class="text-xs text-orange-100 font-medium">總剩餘資產</p>
@@ -162,16 +142,16 @@
                 </div>
             </div>
 
-            <!-- 🔐 密碼設定區塊 -->
+            <!-- 🔐 結帳安全解鎖密碼設定 -->
             <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
-                <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🔐</span> 安全密碼設定</h3>
+                <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🔐</span> 結帳安全驗證密碼</h3>
+                <p class="text-xs text-gray-400">當點擊「顯示條碼」或「扣款」時需要的解鎖密碼 (預設: 711)</p>
                 <form id="password-form" class="space-y-3">
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">修改錢包解鎖密碼</label>
-                        <input type="password" id="new-password" placeholder="輸入新密碼 (預設 711)" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-3.5 text-sm font-mono focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                        <input type="password" id="new-password" placeholder="輸入新密碼" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-3.5 text-sm font-mono focus:outline-none focus:border-orange-500 focus:bg-white transition">
                     </div>
                     <button type="submit" class="w-full bg-gray-900 text-white font-bold py-3 rounded-2xl text-xs active:scale-98 transition cursor-pointer">
-                        更新密碼
+                        更新驗證密碼
                     </button>
                 </form>
             </div>
@@ -191,7 +171,7 @@
             <!-- 系統資訊 -->
             <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-2">
                 <h3 class="font-bold text-base text-gray-800">⚙️ 系統資訊</h3>
-                <p class="text-xs text-gray-500">資料庫連線正常，支援雙人即時同步與本地資安防護。</p>
+                <p class="text-xs text-gray-500">資料庫連線正常，支援雙人即時同步與結帳安全防護。</p>
             </div>
         </div>
     </main>
@@ -296,25 +276,12 @@
         let currentSort = 'balance-desc';
 
         document.addEventListener('DOMContentLoaded', () => {
-            const savedPassword = localStorage.getItem('seven_wallet_pwd') || '711';
-            document.getElementById('lock-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const pwdInput = document.getElementById('lock-password').value;
-                if (pwdInput === savedPassword) {
-                    document.getElementById('lock-screen').classList.add('hidden');
-                    fetchCards();
-                } else {
-                    alert('⚠️ 密碼錯誤！預設密碼為 711');
-                    document.getElementById('lock-password').value = '';
-                }
-            });
-
             document.getElementById('password-form').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const newPwd = document.getElementById('new-password').value.trim();
                 if (newPwd) {
                     localStorage.setItem('seven_wallet_pwd', newPwd);
-                    alert('✅ 安全密碼已成功更新！');
+                    alert('✅ 結帳安全驗證密碼已成功更新！');
                     document.getElementById('new-password').value = '';
                 }
             });
@@ -332,8 +299,21 @@
                 }
             });
 
+            fetchCards();
             renderTrash();
         });
+
+        // 🔐 結帳敏感操作安全驗證函式
+        function verifyPin() {
+            const savedPassword = localStorage.getItem('seven_wallet_pwd') || '711';
+            const input = prompt('🔒 此操作需要安全驗證，請輸入解鎖密碼 (預設: 711)：');
+            if (input === null) return false; // 使用者按取消
+            if (input !== savedPassword) {
+                alert('⚠️ 密碼錯誤！驗證失敗。');
+                return false;
+            }
+            return true;
+        }
 
         function setFilter(val, btn) {
             currentFilter = val;
@@ -421,6 +401,12 @@
                     wakeLock = null;
                 } catch (err) {}
             }
+        }
+
+        // 🔒 顯示條碼前需進行驗證
+        async function requestShowBarcode(cardNumber, cardName, balance) {
+            if (!verifyPin()) return;
+            await showBarcode(cardNumber, cardName, balance);
         }
 
         async function showBarcode(cardNumber, cardName, balance) {
@@ -625,7 +611,7 @@
                         </div>
                     </div>
                     <div class="flex gap-2 pt-3 border-t border-gray-100/80 items-center">
-                        <button type="button" onclick="showBarcode('${card.card_number}', '${card.name}', ${card.balance})" class="flex-[1.6] bg-orange-50 text-orange-600 py-2.5 rounded-xl text-xs font-bold active:scale-95 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+                        <button type="button" onclick="requestShowBarcode('${card.card_number}', '${card.name}', ${card.balance})" class="flex-[1.6] bg-orange-50 text-orange-600 py-2.5 rounded-xl text-xs font-bold active:scale-95 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
                             <span>🖥️</span> 顯示條碼
                         </button>
                         <button type="button" onclick="promptDeduct('${card.id}', ${card.balance})" class="flex-[1] bg-gray-100 text-gray-700 py-2.5 rounded-xl text-xs font-bold active:scale-95 transition flex items-center justify-center gap-1 cursor-pointer">
@@ -742,7 +728,10 @@
             }
         }
 
+        // 🔒 扣款前需進行驗證
         async function promptDeduct(id, currentBalance) {
+            if (!verifyPin()) return;
+
             const amountStr = prompt('請輸入本次消費扣款金額：');
             if (amountStr === null) return;
             const amount = Number(amountStr);
@@ -770,11 +759,10 @@
             }
         }
 
+        // 🗑️ 直接移至回收筒（無確認彈窗）
         async function moveToTrash(id) {
             const cardToMove = cardsData.find(c => c.id == id);
             if (!cardToMove) return;
-
-            if (!confirm('確定要將這張卡片暫存到回收筒嗎？')) return;
 
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/seven_cards?id=eq.${id}`, {
