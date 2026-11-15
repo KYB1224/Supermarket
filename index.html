@@ -21,6 +21,25 @@
 </head>
 <body class="bg-gradient-to-br from-orange-50 via-gray-50 to-orange-50 text-gray-800 min-h-screen pb-36">
 
+    <!-- 🔒 密碼解鎖畫面 Modal -->
+    <div id="lock-screen" class="fixed inset-0 bg-gradient-to-br from-orange-600 via-orange-500 to-amber-500 z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-5">
+            <div class="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-inner">
+                🔒
+            </div>
+            <div>
+                <h2 class="text-xl font-black text-gray-800">請輸入安全密碼</h2>
+                <p class="text-xs text-gray-400 mt-1">保護您的商品卡資產安全 (預設密碼: 711)</p>
+            </div>
+            <form id="lock-form" class="space-y-3">
+                <input type="password" id="lock-password" inputmode="numeric" placeholder="請輸入密碼" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 text-center text-lg font-mono tracking-widest focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                <button type="submit" class="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-orange-500/30 active:scale-98 transition cursor-pointer">
+                    解鎖錢包
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- 頂部質感標題列 -->
     <header class="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white px-4 py-3.5 shadow-lg sticky top-0 z-30">
         <div class="max-w-md mx-auto flex items-center justify-between">
@@ -38,9 +57,8 @@
     <main class="max-w-md mx-auto p-4 space-y-4 relative z-10">
         <!-- 分頁 1：商品卡列表頁 -->
         <div id="page-list" class="space-y-3.5">
-            <!-- 質感升級：膠囊化面額篩選與排序控制面板 -->
+            <!-- 膠囊化面額篩選與排序控制面板 -->
             <div class="bg-white/90 backdrop-blur-md p-3.5 rounded-3xl shadow-sm border border-orange-100/80 space-y-2.5">
-                <!-- 第一行：橫向滑動面額過濾標籤 -->
                 <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-1 text-xs font-bold" id="filter-chips">
                     <button type="button" onclick="setFilter('all', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-orange-500 text-white shadow-sm shrink-0 transition cursor-pointer">全部</button>
                     <button type="button" onclick="setFilter('20', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">20元</button>
@@ -51,7 +69,6 @@
                     <button type="button" onclick="setFilter('200', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">200元</button>
                 </div>
 
-                <!-- 第二行：排序方式切換按鈕 -->
                 <div class="flex items-center justify-between pt-2 border-t border-gray-100 text-xs">
                     <span class="text-gray-400 font-bold text-[11px] pl-1">排序</span>
                     <div class="flex gap-1.5" id="sort-chips">
@@ -131,16 +148,50 @@
             </div>
         </div>
 
-        <!-- 分頁 3：設定頁 -->
+        <!-- 分頁 3：設定頁（含總金額統計面板、刪除回收筒與密碼修改） -->
         <div id="page-settings" class="hidden space-y-4">
-            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
-                <h3 class="font-bold text-base text-gray-800">⚙️ 系統設定</h3>
-                <p class="text-xs text-gray-500">目前資料庫連線正常，支援雙人即時同步。</p>
-                <div class="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-xs text-orange-800 space-y-1">
-                    <p class="font-bold">💡 功能說明：</p>
-                    <p>• 膠囊篩選：上方可直接滑動點選面額快速過濾。</p>
-                    <p>• 輕鬆排序：一鍵切換金額高低或最新新增順序。</p>
+            <!-- 📊 總金額與卡數統計面板 (移至設定分頁) -->
+            <div class="bg-gradient-to-br from-orange-500 to-amber-500 text-white rounded-3xl p-5 shadow-lg shadow-orange-500/20 flex justify-between items-center">
+                <div>
+                    <p class="text-xs text-orange-100 font-medium">總剩餘資產</p>
+                    <h2 id="stats-total-balance" class="text-3xl font-black tracking-tight mt-0.5">NT$ 0</h2>
                 </div>
+                <div class="text-right bg-white/15 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/20">
+                    <p class="text-[11px] text-orange-100 font-medium">可用卡片</p>
+                    <p id="stats-total-count" class="text-lg font-black mt-0.5">0 張</p>
+                </div>
+            </div>
+
+            <!-- 🔐 密碼設定區塊 -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
+                <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🔐</span> 安全密碼設定</h3>
+                <form id="password-form" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">修改錢包解鎖密碼</label>
+                        <input type="password" id="new-password" placeholder="輸入新密碼 (預設 711)" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-3.5 text-sm font-mono focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                    </div>
+                    <button type="submit" class="w-full bg-gray-900 text-white font-bold py-3 rounded-2xl text-xs active:scale-98 transition cursor-pointer">
+                        更新密碼
+                    </button>
+                </form>
+            </div>
+
+            <!-- 🗑️ 刪除卡片暫存區 (資源回收筒) -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🗑️</span> 已刪除卡片暫存區</h3>
+                    <button type="button" onclick="clearTrash()" class="text-xs text-red-500 font-bold hover:underline cursor-pointer">清空回收筒</button>
+                </div>
+                <p class="text-xs text-gray-400">誤刪的卡片會暫存在這裡，隨時可以還原。</p>
+                <div id="trash-list" class="space-y-2.5 pt-1">
+                    <p class="text-xs text-gray-400 text-center py-4">目前暫存區沒有卡片</p>
+                </div>
+            </div>
+
+            <!-- 系統資訊 -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-2">
+                <h3 class="font-bold text-base text-gray-800">⚙️ 系統資訊</h3>
+                <p class="text-xs text-gray-500">資料庫連線正常，支援雙人即時同步與本地資安防護。</p>
             </div>
         </div>
     </main>
@@ -236,6 +287,7 @@
         const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_emdUXSReiJ1R2H1idbmDEA_btdE-Y6d';
 
         let cardsData = [];
+        let trashData = JSON.parse(localStorage.getItem('seven_cards_trash') || '[]');
         let html5QrCode = null;
         let scannerIsRunning = false;
         let wakeLock = null;
@@ -244,6 +296,29 @@
         let currentSort = 'balance-desc';
 
         document.addEventListener('DOMContentLoaded', () => {
+            const savedPassword = localStorage.getItem('seven_wallet_pwd') || '711';
+            document.getElementById('lock-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const pwdInput = document.getElementById('lock-password').value;
+                if (pwdInput === savedPassword) {
+                    document.getElementById('lock-screen').classList.add('hidden');
+                    fetchCards();
+                } else {
+                    alert('⚠️ 密碼錯誤！預設密碼為 711');
+                    document.getElementById('lock-password').value = '';
+                }
+            });
+
+            document.getElementById('password-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const newPwd = document.getElementById('new-password').value.trim();
+                if (newPwd) {
+                    localStorage.setItem('seven_wallet_pwd', newPwd);
+                    alert('✅ 安全密碼已成功更新！');
+                    document.getElementById('new-password').value = '';
+                }
+            });
+
             document.getElementById('btn-close-barcode').addEventListener('click', closeBarcodeModal);
             document.getElementById('btn-close-barcode-bottom').addEventListener('click', closeBarcodeModal);
             document.getElementById('input-name').addEventListener('change', onCardTypeChange);
@@ -257,7 +332,7 @@
                 }
             });
 
-            fetchCards();
+            renderTrash();
         });
 
         function setFilter(val, btn) {
@@ -310,6 +385,8 @@
                 headerTitle.innerText = '系統設定';
                 navSettings.className = "nav-item active flex items-center justify-center w-12 h-10 rounded-full bg-orange-500 text-white text-xl shadow-md cursor-pointer transition";
                 stopScanner();
+                updateStats();
+                renderTrash();
             }
         }
 
@@ -457,6 +534,7 @@
                 }
 
                 cardsData = await response.json();
+                updateStats();
                 renderCards();
                 document.getElementById('sync-text').innerText = '同步中';
                 document.getElementById('sync-dot').className = 'w-2 h-2 rounded-full bg-green-300 animate-pulse';
@@ -464,6 +542,18 @@
                 console.error('API 讀取失敗:', err);
                 showError(err.name === 'AbortError' ? '連線逾時 (請檢查網路)' : err.message);
             }
+        }
+
+        function updateStats() {
+            let totalBalance = 0;
+            let availableCount = 0;
+            cardsData.forEach(card => {
+                const bal = Number(card.balance) || 0;
+                totalBalance += bal;
+                if (bal > 0) availableCount++;
+            });
+            document.getElementById('stats-total-balance').innerText = `NT$ ${totalBalance.toLocaleString()}`;
+            document.getElementById('stats-total-count').innerText = `${availableCount} 張`;
         }
 
         function showError(msg) {
@@ -544,7 +634,7 @@
                         <button type="button" onclick="openEditModal('${card.id}', '${card.name}', '${card.card_number}', ${card.initial_amount}, ${card.balance})" class="w-9 h-9 bg-gray-50 text-gray-500 hover:text-orange-600 rounded-xl transition flex items-center justify-center text-xs cursor-pointer shadow-sm" title="修改">
                             ✏️
                         </button>
-                        <button type="button" onclick="deleteCard('${card.id}')" class="w-9 h-9 bg-gray-50 text-gray-400 hover:text-red-500 rounded-xl transition flex items-center justify-center text-xs cursor-pointer shadow-sm" title="刪除">
+                        <button type="button" onclick="moveToTrash('${card.id}')" class="w-9 h-9 bg-gray-50 text-gray-400 hover:text-red-500 rounded-xl transition flex items-center justify-center text-xs cursor-pointer shadow-sm" title="刪除">
                             🗑️
                         </button>
                     </div>
@@ -680,20 +770,89 @@
             }
         }
 
-        async function deleteCard(id) {
-            if (!confirm('確定要刪除這張卡片的記錄嗎？')) return;
+        async function moveToTrash(id) {
+            const cardToMove = cardsData.find(c => c.id == id);
+            if (!cardToMove) return;
+
+            if (!confirm('確定要將這張卡片暫存到回收筒嗎？')) return;
+
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/seven_cards?id=eq.${id}`, {
                     method: 'DELETE',
-                    headers: {
-                        'apikey': SUPABASE_PUBLISHABLE_KEY,
-                    }
+                    headers: { 'apikey': SUPABASE_PUBLISHABLE_KEY }
                 });
 
                 if (!response.ok) throw new Error('刪除失敗');
+
+                trashData.unshift(cardToMove);
+                if (trashData.length > 20) trashData.pop();
+                localStorage.setItem('seven_cards_trash', JSON.stringify(trashData));
+
                 fetchCards();
             } catch (err) {
                 alert(err.message);
+            }
+        }
+
+        async function restoreCard(index) {
+            const card = trashData[index];
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/seven_cards`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_PUBLISHABLE_KEY,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        name: card.name,
+                        card_number: card.card_number,
+                        initial_amount: card.initial_amount,
+                        balance: card.balance
+                    })
+                });
+
+                if (!response.ok) throw new Error('還原失敗');
+
+                trashData.splice(index, 1);
+                localStorage.setItem('seven_cards_trash', JSON.stringify(trashData));
+                renderTrash();
+                fetchCards();
+                alert('✅ 卡片已成功還原！');
+            } catch (err) {
+                alert('還原失敗：' + err.message);
+            }
+        }
+
+        function renderTrash() {
+            const trashEl = document.getElementById('trash-list');
+            if (trashData.length === 0) {
+                trashEl.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">目前暫存區沒有卡片</p>`;
+                return;
+            }
+
+            trashEl.innerHTML = '';
+            trashData.forEach((card, index) => {
+                const item = document.createElement('div');
+                item.className = "flex justify-between items-center bg-gray-50 border border-gray-200/80 p-3 rounded-2xl text-xs";
+                item.innerHTML = `
+                    <div>
+                        <p class="font-bold text-gray-800">${card.name} (剩餘 $${card.balance})</p>
+                        <p class="font-mono text-[11px] text-gray-400">卡號: ${card.card_number}</p>
+                    </div>
+                    <button type="button" onclick="restoreCard(${index})" class="bg-orange-100 text-orange-700 font-bold px-3 py-1.5 rounded-xl cursor-pointer hover:bg-orange-200 transition">
+                        還原
+                    </button>
+                `;
+                trashEl.appendChild(item);
+            });
+        }
+
+        function clearTrash() {
+            if (confirm('確定要永久清空回收筒嗎？')) {
+                trashData = [];
+                localStorage.setItem('seven_cards_trash', JSON.stringify(trashData));
+                renderTrash();
             }
         }
     </script>
