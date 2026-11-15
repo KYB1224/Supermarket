@@ -142,7 +142,19 @@
                 </div>
             </div>
 
-            <!-- 🔐 結帳安全解鎖密碼設定 -->
+            <!-- 🗑️ 刪除卡片暫存區 (資源回收筒) - 已移至上方 -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🗑️</span> 已刪除卡片暫存區</h3>
+                    <button type="button" onclick="clearTrash()" class="text-xs text-red-500 font-bold hover:underline cursor-pointer">清空回收筒</button>
+                </div>
+                <p class="text-xs text-gray-400">誤刪的卡片會暫存在這裡，隨時可以還原。</p>
+                <div id="trash-list" class="space-y-2.5 pt-1">
+                    <p class="text-xs text-gray-400 text-center py-4">目前暫存區沒有卡片</p>
+                </div>
+            </div>
+
+            <!-- 🔐 結帳安全解鎖密碼設定 - 已移至下方 -->
             <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
                 <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🔐</span> 結帳安全驗證密碼</h3>
                 <p class="text-xs text-gray-400">變更密碼時需先驗證（若忘記密碼可輸入預設 711 進行重設）</p>
@@ -159,18 +171,6 @@
                         確認更新驗證密碼
                     </button>
                 </form>
-            </div>
-
-            <!-- 🗑️ 刪除卡片暫存區 (資源回收筒) -->
-            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
-                <div class="flex justify-between items-center">
-                    <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🗑️</span> 已刪除卡片暫存區</h3>
-                    <button type="button" onclick="clearTrash()" class="text-xs text-red-500 font-bold hover:underline cursor-pointer">清空回收筒</button>
-                </div>
-                <p class="text-xs text-gray-400">誤刪的卡片會暫存在這裡，隨時可以還原。</p>
-                <div id="trash-list" class="space-y-2.5 pt-1">
-                    <p class="text-xs text-gray-400 text-center py-4">目前暫存區沒有卡片</p>
-                </div>
             </div>
 
             <!-- 系統資訊 -->
@@ -305,7 +305,6 @@
                 const newPwdInput = document.getElementById('new-password').value.trim();
                 const currentSavedPwd = localStorage.getItem('seven_wallet_pwd') || '711';
 
-                // 驗證舊密碼（若忘記可輸入預設 711 強制重設）
                 if (oldPwdInput === currentSavedPwd || oldPwdInput === '711') {
                     if (newPwdInput) {
                         localStorage.setItem('seven_wallet_pwd', newPwdInput);
