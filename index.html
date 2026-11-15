@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- iOS 專屬：允許加入主畫面後以獨立 App 模式（隱藏上下網址列）全螢幕執行 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>7-11 商品卡錢包</title>
@@ -13,21 +12,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
-        #barcode-canvas {
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-        }
+        #barcode-canvas { width: 100%; max-width: 100%; height: auto; }
     </style>
 </head>
-<body class="bg-gradient-to-br from-orange-50 via-gray-50 to-orange-50 text-gray-800 min-h-screen pb-24">
+<body class="bg-gradient-to-br from-orange-50 via-gray-50 to-orange-50 text-gray-800 min-h-screen pb-28">
 
     <!-- 頂部質感標題列 -->
-    <header class="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white px-4 py-3.5 shadow-lg sticky top-0 z-35">
+    <header class="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white px-4 py-3.5 shadow-lg sticky top-0 z-30">
         <div class="max-w-md mx-auto flex items-center justify-between">
             <h1 class="text-lg font-black tracking-wider flex items-center gap-2">
                 <span class="bg-white text-orange-600 px-2 py-0.5 rounded-lg text-xs shadow-sm font-black tracking-tighter">7-ELEVEN</span> 
-                <span>商品卡錢包</span>
+                <span id="header-title">商品卡列表</span>
             </h1>
             <span id="sync-badge" class="text-[11px] text-orange-50 flex items-center gap-1.5 font-medium bg-black/15 px-2.5 py-1 rounded-full">
                 <span id="sync-dot" class="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span>
@@ -37,25 +32,109 @@
     </header>
 
     <main class="max-w-md mx-auto p-4 space-y-4 relative z-10">
-        <!-- 總資產統計卡片（已移除裝飾圖示、文字改為「總額」） -->
-        <div class="bg-gradient-to-r from-white to-orange-50/50 p-5 rounded-3xl shadow-md border border-orange-100 flex justify-between items-center relative overflow-hidden">
-            <div>
-                <p class="text-xs font-bold text-gray-400 tracking-wider">總額</p>
-                <p id="total-balance" class="text-3xl font-black text-orange-600 mt-0.5">NT$ 0</p>
+        <!-- 分頁 1：商品卡列表頁 -->
+        <div id="page-list" class="space-y-3.5">
+            <div id="card-list" class="space-y-3.5">
+                <div class="text-center py-16 text-gray-400 text-sm bg-white/80 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-2">
+                    <div class="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                    正在連接資料庫...
+                </div>
             </div>
-            <button type="button" id="btn-open-add" class="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-bold px-5 py-3 rounded-2xl shadow-lg shadow-orange-500/30 active:scale-95 transition flex items-center gap-1.5 z-25 cursor-pointer">
-                <span class="text-base font-black">＋</span> 新增卡片
-            </button>
         </div>
 
-        <!-- 卡片列表區 -->
-        <div id="card-list" class="space-y-3.5">
-            <div id="loading-box" class="text-center py-16 text-gray-400 text-sm bg-white/80 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-2">
-                <div class="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                正在連接資料庫...
+        <!-- 分頁 2：新增卡片頁 -->
+        <div id="page-add" class="hidden space-y-4">
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-orange-100 space-y-4">
+                <div class="border-b border-gray-100 pb-3">
+                    <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>✨</span> 新增商品卡</h3>
+                    <p class="text-xs text-gray-400 mt-0.5">請掃描條碼或手動填寫資料</p>
+                </div>
+
+                <!-- 即時鏡頭掃描條碼區塊 -->
+                <div class="bg-orange-50 border border-orange-100 p-3.5 rounded-2xl space-y-2.5">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-xs font-bold text-orange-800">📷 即時掃描條碼</p>
+                            <p class="text-[11px] text-orange-600 mt-0.5">對準背面條碼即自動帶入</p>
+                        </div>
+                        <button type="button" id="scanner-btn" class="bg-orange-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow active:scale-95 transition cursor-pointer">
+                            開啟鏡頭掃描
+                        </button>
+                    </div>
+                    <div id="reader" class="hidden overflow-hidden rounded-xl border border-orange-200 bg-black"></div>
+                </div>
+
+                <form id="card-form" class="space-y-3.5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">卡片名稱 (面額)</label>
+                        <select id="input-name" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-orange-500 focus:bg-white transition cursor-pointer">
+                            <option value="20元商品卡">20元商品卡</option>
+                            <option value="25元商品卡">25元商品卡</option>
+                            <option value="35元商品卡" selected>35元商品卡</option>
+                            <option value="50元商品卡">50元商品卡</option>
+                            <option value="100元商品卡">100元商品卡</option>
+                            <option value="200元商品卡">200元商品卡</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">卡號 (背後一維條碼數字)</label>
+                        <input type="text" id="input-number" inputmode="numeric" required placeholder="例如：7100016749202695" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm font-mono focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">原始面額 (NT$)</label>
+                            <select id="input-initial" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-orange-500 focus:bg-white transition cursor-pointer">
+                                <option value="20">20</option>
+                                <option value="25">25</option>
+                                <option value="35" selected>35</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="200">200</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">目前剩餘金額 (NT$)</label>
+                            <input type="number" id="input-balance" required value="35" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                        </div>
+                    </div>
+                    <button type="submit" id="btn-submit-card" class="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-orange-500/30 active:scale-98 transition mt-2 cursor-pointer">
+                        確認儲存卡片
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 分頁 3：設定頁 -->
+        <div id="page-settings" class="hidden space-y-4">
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
+                <h3 class="font-bold text-base text-gray-800">⚙️ 系統設定</h3>
+                <p class="text-xs text-gray-500">目前資料庫連線正常，支援雙人即時同步。</p>
+                <div class="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-xs text-orange-800 space-y-1">
+                    <p class="font-bold">💡 使用小提示：</p>
+                    <p>• 點擊條碼可放大以供超商刷取。</p>
+                    <p>• 結帳後可使用「快速扣款」隨時更新餘額。</p>
+                </div>
             </div>
         </div>
     </main>
+
+    <!-- 底部固定導覽列 -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200/80 py-2.5 px-6 shadow-lg z-30">
+        <div class="max-w-md mx-auto flex justify-around items-center">
+            <button type="button" onclick="switchTab('list')" id="nav-list" class="flex flex-col items-center gap-1 text-orange-600 cursor-pointer transition">
+                <span class="text-xl">💳</span>
+                <span class="text-[11px] font-bold">商品卡</span>
+            </button>
+            <button type="button" onclick="switchTab('add')" id="nav-add" class="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 cursor-pointer transition">
+                <span class="text-xl">➕</span>
+                <span class="text-[11px] font-bold">新增卡片</span>
+            </button>
+            <button type="button" onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 cursor-pointer transition">
+                <span class="text-xl">⚙️</span>
+                <span class="text-[11px] font-bold">設定</span>
+            </button>
+        </div>
+    </nav>
 
     <!-- 結帳專用全螢幕高對比條碼 Modal -->
     <div id="barcode-modal" class="fixed inset-0 bg-black/95 hidden z-50 flex flex-col items-center justify-center p-3 sm:p-6">
@@ -68,12 +147,10 @@
                 <p id="modal-card-balance" class="text-orange-600 font-black text-lg mt-0.5"></p>
             </div>
 
-            <!-- 純白高對比條碼區 -->
             <div class="bg-white py-4 px-2 rounded-2xl border-2 border-gray-200 flex justify-center items-center overflow-hidden">
                 <svg id="barcode-canvas"></svg>
             </div>
 
-            <!-- 亮度與常亮提示 -->
             <div class="bg-amber-50 border border-amber-300 p-3.5 rounded-2xl text-left flex items-start gap-2.5">
                 <span class="text-xl leading-none">🔆</span>
                 <div class="space-y-0.5">
@@ -88,68 +165,6 @@
         </div>
     </div>
 
-    <!-- 新增卡片 Modal -->
-    <div id="add-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-end sm:items-center justify-center sm:p-4">
-        <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center border-b border-gray-100 pb-3">
-                <h3 class="font-bold text-lg text-gray-800 flex items-center gap-2"><span>✨</span> 新增商品卡</h3>
-                <button type="button" id="btn-close-add" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 font-bold">✕</button>
-            </div>
-
-            <!-- 即時鏡頭掃描條碼區塊 -->
-            <div class="bg-orange-50 border border-orange-100 p-3.5 rounded-2xl space-y-2.5">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-xs font-bold text-orange-800">📷 即時掃描條碼</p>
-                        <p class="text-[11px] text-orange-600 mt-0.5">對準背面條碼即自動帶入</p>
-                    </div>
-                    <button type="button" id="scanner-btn" class="bg-orange-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow active:scale-95 transition cursor-pointer">
-                        開啟鏡頭掃描
-                    </button>
-                </div>
-                <div id="reader" class="hidden overflow-hidden rounded-xl border border-orange-200 bg-black"></div>
-            </div>
-
-            <form id="card-form" class="space-y-3.5">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">卡片名稱 (面額)</label>
-                    <select id="input-name" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-4 px-3.5 text-sm focus:outline-none focus:border-orange-500 focus:bg-white transition cursor-pointer">
-                        <option value="20元商品卡">20元商品卡</option>
-                        <option value="25元商品卡">25元商品卡</option>
-                        <option value="35元商品卡" selected>35元商品卡</option>
-                        <option value="50元商品卡">50元商品卡</option>
-                        <option value="100元商品卡">100元商品卡</option>
-                        <option value="200元商品卡">200元商品卡</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">卡號 (背後一維條碼數字)</label>
-                    <input type="text" id="input-number" inputmode="numeric" required placeholder="例如：7100016749202695" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm font-mono focus:outline-none focus:border-orange-500 focus:bg-white transition">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">原始面額 (NT$)</label>
-                        <select id="input-initial" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-4 px-3.5 text-sm focus:outline-none focus:border-orange-500 focus:bg-white transition cursor-pointer">
-                            <option value="20">20</option>
-                            <option value="25">25</option>
-                            <option value="35" selected>35</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                            <option value="200">200</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">目前剩餘金額 (NT$)</label>
-                        <input type="number" id="input-balance" required value="35" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-orange-500 focus:bg-white transition">
-                    </div>
-                </div>
-                <button type="submit" id="btn-submit-card" class="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-orange-500/30 active:scale-98 transition mt-2 cursor-pointer">
-                    確認儲存卡片
-                </button>
-            </form>
-        </div>
-    </div>
-
     <script>
         const SUPABASE_URL = 'https://ofsssxodiefoxwpwkxdk.supabase.co';
         const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_emdUXSReiJ1R2H1idbmDEA_btdE-Y6d';
@@ -160,10 +175,6 @@
         let wakeLock = null;
 
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('btn-open-add').addEventListener('click', () => {
-                document.getElementById('add-modal').classList.remove('hidden');
-            });
-            document.getElementById('btn-close-add').addEventListener('click', closeAddModal);
             document.getElementById('btn-close-barcode').addEventListener('click', closeBarcodeModal);
             document.getElementById('btn-close-barcode-bottom').addEventListener('click', closeBarcodeModal);
             document.getElementById('input-name').addEventListener('change', onCardTypeChange);
@@ -179,6 +190,43 @@
             fetchCards();
         });
 
+        // 底部導覽列分頁切換邏輯
+        function switchTab(tab) {
+            const pageList = document.getElementById('page-list');
+            const pageAdd = document.getElementById('page-add');
+            const pageSettings = document.getElementById('page-settings');
+            const headerTitle = document.getElementById('header-title');
+
+            const navList = document.getElementById('nav-list');
+            const navAdd = document.getElementById('nav-add');
+            const navSettings = document.getElementById('nav-settings');
+
+            // 預設全部隱藏、按鈕變灰
+            pageList.classList.add('hidden');
+            pageAdd.classList.add('hidden');
+            pageSettings.classList.add('hidden');
+            
+            [navList, navAdd, navSettings].forEach(el => {
+                el.className = "flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 cursor-pointer transition";
+            });
+
+            if (tab === 'list') {
+                pageList.classList.remove('hidden');
+                headerTitle.innerText = '商品卡列表';
+                navList.className = "flex flex-col items-center gap-1 text-orange-600 cursor-pointer transition";
+                stopScanner();
+            } else if (tab === 'add') {
+                pageAdd.classList.remove('hidden');
+                headerTitle.innerText = '新增商品卡';
+                navAdd.className = "flex flex-col items-center gap-1 text-orange-600 cursor-pointer transition";
+            } else if (tab === 'settings') {
+                pageSettings.classList.remove('hidden');
+                headerTitle.innerText = '系統設定';
+                navSettings.className = "flex flex-col items-center gap-1 text-orange-600 cursor-pointer transition";
+                stopScanner();
+            }
+        }
+
         function onCardTypeChange() {
             const nameSelect = document.getElementById('input-name').value;
             const match = nameSelect.match(/\d+/);
@@ -187,13 +235,6 @@
                 document.getElementById('input-initial').value = val;
                 document.getElementById('input-balance').value = val;
             }
-        }
-
-        function closeAddModal() {
-            stopScanner();
-            document.getElementById('add-modal').classList.add('hidden');
-            document.getElementById('card-form').reset();
-            onCardTypeChange();
         }
 
         async function requestWakeLock() {
@@ -352,16 +393,14 @@
 
         function renderCards() {
             const listEl = document.getElementById('card-list');
-            let total = 0;
 
             if (cardsData.length === 0) {
                 listEl.innerHTML = `
                     <div class="text-center py-16 text-gray-400 text-sm bg-white/80 rounded-3xl border border-gray-100 shadow-sm space-y-2">
                         <div class="text-4xl">🏷️</div>
                         <p class="font-medium text-gray-600">目前沒有儲存的商品卡</p>
-                        <p class="text-xs text-gray-400">點擊上方「＋ 新增卡片」開始建立吧！</p>
+                        <p class="text-xs text-gray-400">點擊下方「新增卡片」開始建立吧！</p>
                     </div>`;
-                document.getElementById('total-balance').innerText = `NT$ 0`;
                 return;
             }
 
@@ -369,7 +408,6 @@
 
             listEl.innerHTML = '';
             sorted.forEach(card => {
-                total += Number(card.balance);
                 const isDepleted = Number(card.balance) <= 0;
 
                 const cardEl = document.createElement('div');
@@ -402,38 +440,6 @@
                 `;
                 listEl.appendChild(cardEl);
             });
-
-            document.getElementById('total-balance').innerText = `NT$ ${total}`;
-        }
-
-        function showBarcode(cardNumber, cardName, balance) {
-            document.getElementById('modal-card-name').innerText = cardName;
-            document.getElementById('modal-card-balance').innerText = `剩餘金額：NT$ ${balance}`;
-            document.getElementById('barcode-modal').classList.remove('hidden');
-
-            requestWakeLock();
-
-            try {
-                JsBarcode("#barcode-canvas", cardNumber, {
-                    format: "CODE128",
-                    lineColor: "#000000",
-                    background: "#ffffff",
-                    width: 2.8,
-                    height: 120,
-                    displayValue: true,
-                    fontOptions: "bold",
-                    fontSize: 16,
-                    textMargin: 8,
-                    margin: 20
-                });
-            } catch (e) {
-                console.error('條碼繪製失敗:', e);
-            }
-        }
-
-        function closeBarcodeModal() {
-            document.getElementById('barcode-modal').classList.add('hidden');
-            releaseWakeLock();
         }
 
         async function saveCard(e) {
@@ -468,8 +474,10 @@
                     throw new Error(`HTTP ${response.status}: ${detail || '寫入失敗'}`);
                 }
 
-                closeAddModal();
+                document.getElementById('card-form').reset();
+                onCardTypeChange();
                 fetchCards();
+                switchTab('list'); // 儲存成功後自動切回列表頁
             } catch (err) {
                 alert('儲存失敗：' + err.message);
             } finally {
