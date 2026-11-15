@@ -4,30 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>7-11 商品卡錢包</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- JsBarcode -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-    <!-- html5-qrcode 用於手機鏡頭掃描條碼 -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans TC', sans-serif; }
+        body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-orange-50 via-gray-50 to-orange-50 text-gray-800 min-h-screen pb-24">
 
-    <!-- 頂部質感標題列（單行精簡版） -->
-    <header class="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white px-4 py-3.5 shadow-lg sticky top-0 z-30 backdrop-blur-md bg-opacity-95">
+    <!-- 頂部質感標題列 -->
+    <header class="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white px-4 py-3.5 shadow-lg sticky top-0 z-30">
         <div class="max-w-md mx-auto flex items-center justify-between">
             <h1 class="text-lg font-black tracking-wider flex items-center gap-2">
                 <span class="bg-white text-orange-600 px-2 py-0.5 rounded-lg text-xs shadow-sm font-black tracking-tighter">7-ELEVEN</span> 
                 <span>商品卡錢包</span>
             </h1>
-            <span class="text-[11px] text-orange-50 flex items-center gap-1.5 font-medium bg-black/15 px-2.5 py-1 rounded-full">
+            <span id="sync-badge" class="text-[11px] text-orange-50 flex items-center gap-1.5 font-medium bg-black/15 px-2.5 py-1 rounded-full">
                 <span class="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span>同步中
             </span>
         </div>
@@ -41,14 +35,14 @@
                 <p class="text-xs font-bold text-gray-400 tracking-wider">共有資產總額</p>
                 <p id="total-balance" class="text-3xl font-black text-orange-600 mt-0.5">NT$ 0</p>
             </div>
-            <button type="button" onclick="openAddModal()" class="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-bold px-5 py-3 rounded-2xl shadow-lg shadow-orange-500/30 active:scale-95 transition flex items-center gap-1.5 z-20 cursor-pointer">
+            <button type="button" id="btn-open-add" class="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-bold px-5 py-3 rounded-2xl shadow-lg shadow-orange-500/30 active:scale-95 transition flex items-center gap-1.5 z-20 cursor-pointer">
                 <span class="text-base font-black">＋</span> 新增卡片
             </button>
         </div>
 
         <!-- 卡片列表區 -->
         <div id="card-list" class="space-y-3.5">
-            <div id="loading-state" class="text-center py-16 text-gray-400 text-sm bg-white/80 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-2">
+            <div class="text-center py-16 text-gray-400 text-sm bg-white/80 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-2">
                 <div class="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
                 載入雲端卡片中...
             </div>
@@ -56,9 +50,9 @@
     </main>
 
     <!-- 放大條碼 Modal -->
-    <div id="barcode-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex flex-col items-center justify-center p-6 transition-all">
+    <div id="barcode-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex flex-col items-center justify-center p-6">
         <div class="bg-white w-full max-w-xs rounded-3xl p-6 text-center space-y-4 relative shadow-2xl">
-            <button type="button" onclick="closeBarcodeModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 font-bold transition">✕</button>
+            <button type="button" id="btn-close-barcode" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 font-bold">✕</button>
             <div class="pt-2">
                 <h3 id="modal-card-name" class="font-bold text-lg text-gray-800">統一商品卡</h3>
                 <p id="modal-card-balance" class="text-orange-600 font-bold text-sm mt-0.5"></p>
@@ -71,16 +65,387 @@
         </div>
     </div>
 
-    <!-- 新增卡片 Modal (支援相機掃描與下拉選單) -->
-    <div id="add-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-end sm:items-center justify-center sm:p-4 transition-all">
+    <!-- 新增卡片 Modal -->
+    <div id="add-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-end sm:items-center justify-center sm:p-4">
         <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b border-gray-100 pb-3">
                 <h3 class="font-bold text-lg text-gray-800 flex items-center gap-2"><span>✨</span> 新增商品卡</h3>
-                <button type="button" onclick="closeAddModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 font-bold transition">✕</button>
+                <button type="button" id="btn-close-add" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 font-bold">✕</button>
             </div>
 
-            <!-- 相機掃描區塊 -->
+            <!-- 掃描條碼區塊（輕量原生實作，不拖慢網頁） -->
             <div class="bg-orange-50 border border-orange-100 p-3 rounded-2xl space-y-2">
                 <div class="flex justify-between items-center">
-                    <span class="text-xs font-bold text-orange-700">📷 想要用相機掃描條碼？</span>
-                    <button type="button" onclick="toggleScanner()" id="scanner-btn" class="bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow hover:bg-orange-
+                    <span class="text-xs font-bold text-orange-700">📷 掃描卡片條碼</span>
+                    <div class="flex gap-1.5">
+                        <button type="button" id="scanner-btn" class="bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow active:scale-95 transition">
+                            開啟鏡頭掃描
+                        </button>
+                        <label class="bg-white text-orange-600 border border-orange-200 text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm active:scale-95 transition cursor-pointer">
+                            拍照辨識
+                            <input type="file" id="barcode-file-input" accept="image/*" capture="environment" class="hidden">
+                        </label>
+                    </div>
+                </div>
+                <div id="scanner-box" class="hidden relative overflow-hidden rounded-xl border border-orange-200 bg-black aspect-video">
+                    <video id="scanner-video" class="w-full h-full object-cover" playsinline muted></video>
+                    <div class="absolute inset-x-6 top-1/2 -translate-y-1/2 h-0.5 bg-red-500 shadow-[0_0_8px_red]"></div>
+                </div>
+                <p id="scanner-hint" class="hidden text-[11px] text-orange-600 text-center"></p>
+            </div>
+
+            <form id="card-form" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">卡片名稱 (面額)</label>
+                    <select id="input-name" class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-3.5 text-sm focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                        <option value="20元商品卡">20元商品卡</option>
+                        <option value="25元商品卡">25元商品卡</option>
+                        <option value="35元商品卡" selected>35元商品卡</option>
+                        <option value="50元商品卡">50元商品卡</option>
+                        <option value="100元商品卡">100元商品卡</option>
+                        <option value="200元商品卡">200元商品卡</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">卡號 (背後一維條碼數字)</label>
+                    <input type="text" id="input-number" inputmode="numeric" required placeholder="例如：7100016749202695" class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-3.5 text-sm font-mono focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">原始面額 (NT$)</label>
+                        <select id="input-initial" class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-3.5 text-sm focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                            <option value="20">20</option>
+                            <option value="25">25</option>
+                            <option value="35" selected>35</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="200">200</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">目前剩餘金額 (NT$)</label>
+                        <input type="number" id="input-balance" required value="35" class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-3.5 text-sm focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                    </div>
+                </div>
+                <button type="submit" id="btn-submit-card" class="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-orange-500/30 active:scale-98 transition mt-2 cursor-pointer">
+                    確認儲存卡片
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://ofsssxodiefoxwpwkxdk.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_emdXSRelJ1R2HlidbmDEA_btdE-Y6d';
+
+        let supabaseClient = null;
+        let cardsData = [];
+        let mediaStream = null;
+        let scanTimer = null;
+
+        // 1. 先綁定所有 UI 事件，確保按鈕絕對不會沒反應
+        document.getElementById('btn-open-add').addEventListener('click', () => {
+            document.getElementById('add-modal').classList.remove('hidden');
+        });
+
+        document.getElementById('btn-close-add').addEventListener('click', closeAddModal);
+        document.getElementById('btn-close-barcode').addEventListener('click', () => {
+            document.getElementById('barcode-modal').classList.add('hidden');
+        });
+
+        document.getElementById('input-name').addEventListener('change', onCardTypeChange);
+        document.getElementById('card-form').addEventListener('submit', saveCard);
+        document.getElementById('scanner-btn').addEventListener('click', toggleScanner);
+        document.getElementById('barcode-file-input').addEventListener('change', handleImageScan);
+
+        function onCardTypeChange() {
+            const nameSelect = document.getElementById('input-name').value;
+            const match = nameSelect.match(/\d+/);
+            if (match) {
+                document.getElementById('input-initial').value = match[0];
+                document.getElementById('input-balance').value = match[0];
+            }
+        }
+
+        function closeAddModal() {
+            stopScanner();
+            document.getElementById('add-modal').classList.add('hidden');
+            document.getElementById('card-form').reset();
+            onCardTypeChange();
+        }
+
+        // 2. 初始化 Supabase 並加入 5 秒超時保護
+        async function init() {
+            try {
+                if (!window.supabase) {
+                    throw new Error('Supabase 套件載入失敗，請檢查網路連線');
+                }
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                await fetchCards();
+
+                supabaseClient
+                    .channel('public:seven_cards')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'seven_cards' }, () => {
+                        fetchCards();
+                    })
+                    .subscribe();
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+
+        async function fetchCards() {
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('連線逾時，請確認網路狀態後下拉重新整理')), 6000)
+            );
+
+            try {
+                const queryPromise = supabaseClient
+                    .from('seven_cards')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+                if (error) throw error;
+
+                cardsData = data || [];
+                renderCards();
+            } catch (err) {
+                console.error('讀取失敗:', err);
+                showError(err.message || '無法連線至資料庫');
+            }
+        }
+
+        function showError(msg) {
+            document.getElementById('card-list').innerHTML = `
+                <div class="text-center py-10 text-red-500 text-sm bg-white rounded-3xl border border-red-100 shadow-sm space-y-2 p-4">
+                    <p class="font-bold text-base">⚠️ 載入異常</p>
+                    <p class="text-xs text-gray-600 bg-red-50 p-2 rounded-lg font-mono">${msg}</p>
+                    <button type="button" onclick="fetchCards()" class="mt-2 bg-orange-500 text-white text-xs font-bold px-4 py-2 rounded-xl">重新連線</button>
+                </div>`;
+        }
+
+        function renderCards() {
+            const listEl = document.getElementById('card-list');
+            let total = 0;
+
+            if (cardsData.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-16 text-gray-400 text-sm bg-white rounded-3xl border border-gray-100 shadow-sm space-y-2">
+                        <div class="text-4xl">🏷️</div>
+                        <p class="font-medium text-gray-600">目前沒有儲存的商品卡</p>
+                        <p class="text-xs text-gray-400">點擊上方「＋ 新增卡片」開始建立吧！</p>
+                    </div>`;
+                document.getElementById('total-balance').innerText = `NT$ 0`;
+                return;
+            }
+
+            // 有餘額排前面，已用完排後面
+            const sorted = [...cardsData].sort((a, b) => (b.balance > 0) - (a.balance > 0));
+
+            listEl.innerHTML = '';
+            sorted.forEach(card => {
+                total += Number(card.balance);
+                const isDepleted = Number(card.balance) <= 0;
+
+                const cardEl = document.createElement('div');
+                cardEl.className = `bg-white p-5 rounded-3xl shadow-sm border transition-all duration-200 ${isDepleted ? 'opacity-60 border-gray-200 bg-gray-50/50' : 'border-orange-100/80'}`;
+                cardEl.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold text-gray-800 text-base">${card.name}</h3>
+                                ${isDepleted ? '<span class="bg-gray-200 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-full">已用完</span>' : '<span class="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-full">可用</span>'}
+                            </div>
+                            <p class="text-xs font-mono text-gray-400 mt-0.5">卡號: ${card.card_number}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xl font-black ${isDepleted ? 'text-gray-400' : 'text-orange-600'}">NT$ ${card.balance}</span>
+                            <span class="text-xs text-gray-400 block mt-0.5">原始面額 $${card.initial_amount}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2.5 pt-3 border-t border-gray-100/80">
+                        <button type="button" onclick="showBarcode('${card.card_number}', '${card.name}', ${card.balance})" class="flex-1 bg-orange-50 text-orange-600 py-2.5 rounded-2xl text-xs font-bold active:scale-95 transition flex items-center justify-center gap-1 cursor-pointer">
+                            <span>🖥️</span> 顯示條碼
+                        </button>
+                        <button type="button" onclick="promptDeduct('${card.id}', ${card.balance})" class="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-2xl text-xs font-bold active:scale-95 transition flex items-center justify-center gap-1 cursor-pointer">
+                            <span>💳</span> 快速扣款
+                        </button>
+                        <button type="button" onclick="deleteCard('${card.id}')" class="w-10 bg-gray-50 text-gray-400 hover:text-red-500 rounded-2xl transition flex items-center justify-center text-xs cursor-pointer" title="刪除">
+                            🗑️
+                        </button>
+                    </div>
+                `;
+                listEl.appendChild(cardEl);
+            });
+
+            document.getElementById('total-balance').innerText = `NT$ ${total}`;
+        }
+
+        function showBarcode(cardNumber, cardName, balance) {
+            document.getElementById('modal-card-name').innerText = cardName;
+            document.getElementById('modal-card-balance').innerText = `剩餘金額：NT$ ${balance}`;
+            document.getElementById('modal-card-number').innerText = cardNumber;
+            document.getElementById('barcode-modal').classList.remove('hidden');
+
+            try {
+                JsBarcode("#barcode-canvas", cardNumber, {
+                    format: "CODE128",
+                    lineColor: "#111",
+                    width: 2.2,
+                    height: 85,
+                    displayValue: true,
+                    fontSize: 14,
+                    margin: 5
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // 原生條碼掃描器（支援 Android/Chrome 原生 BarcodeDetector；iOS 自動提示使用拍照或輸入）
+        async function toggleScanner() {
+            const box = document.getElementById('scanner-box');
+            const btn = document.getElementById('scanner-btn');
+            const hint = document.getElementById('scanner-hint');
+
+            if (mediaStream) {
+                stopScanner();
+                return;
+            }
+
+            if (!('BarcodeDetector' in window)) {
+                hint.innerText = 'iPhone Safari 不支援網頁即時掃一維條碼，建議點右邊「拍照辨識」或直接輸入卡號。';
+                hint.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                const video = document.getElementById('scanner-video');
+                video.srcObject = mediaStream;
+                await video.play();
+
+                box.classList.remove('hidden');
+                hint.innerText = '請將商品卡背面條碼對準紅線';
+                hint.classList.remove('hidden');
+                btn.innerText = '關閉鏡頭';
+
+                const detector = new BarcodeDetector({ formats: ['code_128', 'ean_13', 'code_39', 'itf'] });
+                scanTimer = setInterval(async () => {
+                    try {
+                        const barcodes = await detector.detect(video);
+                        if (barcodes.length > 0) {
+                            const code = barcodes[0].rawValue;
+                            document.getElementById('input-number').value = code;
+                            stopScanner();
+                            alert('成功掃描卡號：' + code);
+                        }
+                    } catch (e) {}
+                }, 300);
+            } catch (err) {
+                alert('無法開啟相機，請確認已允許相機權限，或直接輸入卡號。');
+                stopScanner();
+            }
+        }
+
+        async function handleImageScan(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if ('BarcodeDetector' in window) {
+                try {
+                    const bitmap = await createImageBitmap(file);
+                    const detector = new BarcodeDetector({ formats: ['code_128', 'ean_13', 'code_39', 'itf'] });
+                    const barcodes = await detector.detect(bitmap);
+                    if (barcodes.length > 0) {
+                        document.getElementById('input-number').value = barcodes[0].rawValue;
+                        alert('成功辨識卡號：' + barcodes[0].rawValue);
+                        return;
+                    }
+                } catch (err) {}
+            }
+            alert('這張照片未自動辨識出條碼（iPhone 網頁限制），請直接看著照片輸入下方 16 碼卡號即可！');
+        }
+
+        function stopScanner() {
+            if (scanTimer) {
+                clearInterval(scanTimer);
+                scanTimer = null;
+            }
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+                mediaStream = null;
+            }
+            document.getElementById('scanner-box').classList.add('hidden');
+            document.getElementById('scanner-hint').classList.add('hidden');
+            document.getElementById('scanner-btn').innerText = '開啟鏡頭掃描';
+        }
+
+        async function saveCard(e) {
+            e.preventDefault();
+            if (!supabaseClient) {
+                alert('尚未連線至雲端資料庫，請重新整理網頁後再試。');
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-card');
+            btn.disabled = true;
+            btn.innerText = '儲存中...';
+
+            const name = document.getElementById('input-name').value;
+            const card_number = document.getElementById('input-number').value.trim();
+            const initial_amount = Number(document.getElementById('input-initial').value);
+            const balance = Number(document.getElementById('input-balance').value);
+
+            const { error } = await supabaseClient
+                .from('seven_cards')
+                .insert([{ name, card_number, initial_amount, balance }]);
+
+            btn.disabled = false;
+            btn.innerText = '確認儲存卡片';
+
+            if (error) {
+                alert('儲存失敗：' + error.message);
+            } else {
+                closeAddModal();
+                fetchCards();
+            }
+        }
+
+        async function promptDeduct(id, currentBalance) {
+            const amountStr = prompt('請輸入本次消費扣款金額：');
+            if (amountStr === null) return;
+            const amount = Number(amountStr);
+            if (isNaN(amount) || amount <= 0) {
+                alert('請輸入有效的金額！');
+                return;
+            }
+
+            const newBalance = Math.max(0, currentBalance - amount);
+            const { error } = await supabaseClient
+                .from('seven_cards')
+                .update({ balance: newBalance })
+                .eq('id', id);
+
+            if (error) {
+                alert('扣款更新失敗：' + error.message);
+            }
+        }
+
+        async function deleteCard(id) {
+            if (!confirm('確定要刪除這張卡片的記錄嗎？')) return;
+            const { error } = await supabaseClient
+                .from('seven_cards')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                alert('刪除失敗：' + error.message);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
