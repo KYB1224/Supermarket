@@ -145,13 +145,18 @@
             <!-- 🔐 結帳安全解鎖密碼設定 -->
             <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
                 <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🔐</span> 結帳安全驗證密碼</h3>
-                <p class="text-xs text-gray-400">當點擊「顯示條碼」或「扣款」時需要的解鎖密碼 (預設: 711)</p>
+                <p class="text-xs text-gray-400">變更密碼時需先驗證（若忘記密碼可輸入預設 711 進行重設）</p>
                 <form id="password-form" class="space-y-3">
                     <div>
-                        <input type="password" id="new-password" inputmode="numeric" placeholder="輸入新密碼" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-3.5 text-sm font-mono focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                        <label class="block text-[11px] font-bold text-gray-500 mb-1">請輸入目前舊密碼</label>
+                        <input type="password" id="old-password" inputmode="numeric" placeholder="目前密碼" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-3.5 text-sm font-mono focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500 mb-1">請輸入新密碼</label>
+                        <input type="password" id="new-password" inputmode="numeric" placeholder="新密碼" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-3.5 text-sm font-mono focus:outline-none focus:border-orange-500 focus:bg-white transition">
                     </div>
                     <button type="submit" class="w-full bg-gray-900 text-white font-bold py-3 rounded-2xl text-xs active:scale-98 transition cursor-pointer">
-                        更新驗證密碼
+                        確認更新驗證密碼
                     </button>
                 </form>
             </div>
@@ -184,7 +189,6 @@
             </div>
             <div>
                 <h3 class="font-black text-lg text-gray-900">安全驗證，請輸入解鎖密碼</h3>
-                <p class="text-xs text-gray-400 mt-0.5">預設密碼：711</p>
             </div>
             <input type="password" id="pin-input" inputmode="numeric" placeholder="請輸入密碼" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 text-center text-lg font-mono tracking-widest focus:outline-none focus:border-orange-500 focus:bg-white transition">
             <div class="grid grid-cols-2 gap-2.5 pt-1">
@@ -292,20 +296,29 @@
 
         let currentFilter = 'all';
         let currentSort = 'balance-desc';
-        let pendingAction = null; // 儲存通過驗證後要執行的動作
+        let pendingAction = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('password-form').addEventListener('submit', (e) => {
                 e.preventDefault();
-                const newPwd = document.getElementById('new-password').value.trim();
-                if (newPwd) {
-                    localStorage.setItem('seven_wallet_pwd', newPwd);
-                    alert('✅ 結帳安全驗證密碼已成功更新！');
-                    document.getElementById('new-password').value = '';
+                const oldPwdInput = document.getElementById('old-password').value.trim();
+                const newPwdInput = document.getElementById('new-password').value.trim();
+                const currentSavedPwd = localStorage.getItem('seven_wallet_pwd') || '711';
+
+                // 驗證舊密碼（若忘記可輸入預設 711 強制重設）
+                if (oldPwdInput === currentSavedPwd || oldPwdInput === '711') {
+                    if (newPwdInput) {
+                        localStorage.setItem('seven_wallet_pwd', newPwdInput);
+                        alert('✅ 結帳安全驗證密碼已成功更新！');
+                        document.getElementById('old-password').value = '';
+                        document.getElementById('new-password').value = '';
+                    }
+                } else {
+                    alert('⚠️ 舊密碼輸入錯誤！');
+                    document.getElementById('old-password').value = '';
                 }
             });
 
-            // 監聽密碼輸入框按 Enter 直接送出
             document.getElementById('pin-input').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') submitPin();
             });
@@ -327,14 +340,13 @@
             renderTrash();
         });
 
-        // 🔐 呼叫自訂數字鍵盤 Modal 進行驗證
         function verifyPin(actionCallback) {
             pendingAction = actionCallback;
             const modal = document.getElementById('pin-modal');
             const input = document.getElementById('pin-input');
             input.value = '';
             modal.classList.remove('hidden');
-            setTimeout(() => input.focus(), 100); // 自動聚焦並彈出數字鍵盤
+            setTimeout(() => input.focus(), 100);
         }
 
         function closePinModal(success) {
@@ -445,7 +457,6 @@
             }
         }
 
-        // 🔒 點擊顯示條碼前驗證
         function requestShowBarcode(cardNumber, cardName, balance) {
             verifyPin(() => {
                 showBarcode(cardNumber, cardName, balance);
@@ -771,7 +782,6 @@
             }
         }
 
-        // 🔒 點擊扣款前驗證
         function promptDeduct(id, currentBalance) {
             verifyPin(() => {
                 executeDeduct(id, currentBalance);
@@ -806,7 +816,6 @@
             }
         }
 
-        // 🗑️ 直接移至回收筒（無確認彈窗）
         async function moveToTrash(id) {
             const cardToMove = cardsData.find(c => c.id == id);
             if (!cardToMove) return;
