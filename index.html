@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- JsBarcode -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <!-- html5-qrcode 用於手機鏡頭掃描條碼 -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Google Fonts -->
@@ -18,15 +20,17 @@
 </head>
 <body class="bg-gradient-to-br from-orange-50 via-gray-50 to-orange-50 text-gray-800 min-h-screen pb-24">
 
-    <!-- 頂部質感標題列 -->
-    <header class="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white p-5 text-center shadow-lg sticky top-0 z-30 backdrop-blur-md bg-opacity-95">
-        <h1 class="text-xl font-black tracking-wider flex items-center justify-center gap-2">
-            <span class="bg-white text-orange-600 px-2 py-0.5 rounded-lg text-sm shadow-sm font-black tracking-tighter">7-ELEVEN</span> 
-            <span>商品卡錢包</span>
-        </h1>
-        <p class="text-xs text-orange-100 mt-1 flex items-center justify-center gap-1.5 font-medium">
-            <span class="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span> 雙人即時同步中
-        </p>
+    <!-- 頂部質感標題列（單行精簡版） -->
+    <header class="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white px-4 py-3.5 shadow-lg sticky top-0 z-30 backdrop-blur-md bg-opacity-95">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <h1 class="text-lg font-black tracking-wider flex items-center gap-2">
+                <span class="bg-white text-orange-600 px-2 py-0.5 rounded-lg text-xs shadow-sm font-black tracking-tighter">7-ELEVEN</span> 
+                <span>商品卡錢包</span>
+            </h1>
+            <span class="text-[11px] text-orange-50 flex items-center gap-1.5 font-medium bg-black/15 px-2.5 py-1 rounded-full">
+                <span class="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span>同步中
+            </span>
+        </div>
     </header>
 
     <main class="max-w-md mx-auto p-4 space-y-4 relative z-10">
@@ -67,13 +71,25 @@
         </div>
     </div>
 
-    <!-- 新增卡片 Modal -->
+    <!-- 新增卡片 Modal (支援相機掃描與手動輸入) -->
     <div id="add-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-end sm:items-center justify-center sm:p-4 transition-all">
         <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b border-gray-100 pb-3">
                 <h3 class="font-bold text-lg text-gray-800 flex items-center gap-2"><span>✨</span> 新增商品卡</h3>
                 <button type="button" onclick="closeAddModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 font-bold transition">✕</button>
             </div>
+
+            <!-- 相機掃描區塊 -->
+            <div class="bg-orange-50 border border-orange-100 p-3 rounded-2xl space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-orange-700">📷 想要用相機掃描條碼？</span>
+                    <button type="button" onclick="toggleScanner()" id="scanner-btn" class="bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow hover:bg-orange-600 transition">
+                        開啟相機掃描
+                    </button>
+                </div>
+                <div id="reader" class="hidden overflow-hidden rounded-xl border border-orange-200 bg-black"></div>
+            </div>
+
             <form id="card-form" onsubmit="saveCard(event)" class="space-y-3.5">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">卡片備註名稱</label>
@@ -102,10 +118,12 @@
 
     <script>
         const SUPABASE_URL = 'https://ofsssxodiefoxwpwkxdk.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_emdXSRelJ1R2HlidbmDEA_btde-8wB5_7S5qjJmX1r6v9z0a';
+        const SUPABASE_ANON_KEY = 'sb_publishable_emdUXSReiJ1R2H1idbmDEA_btdE-Y6d';
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let cardsData = [];
+        let html5QrCode = null;
+        let scannerIsRunning = false;
 
         async function init() {
             await fetchCards();
@@ -127,9 +145,9 @@
             if (error) {
                 console.error('讀取失敗', error);
                 document.getElementById('card-list').innerHTML = `
-                    <div class="text-center py-12 text-red-400 text-sm bg-white rounded-3xl border border-red-100 shadow-sm space-y-2">
-                        <p class="font-bold">連線雲端發生錯誤</p>
-                        <p class="text-xs text-gray-400">${error.message}</p>
+                    <div class="text-center py-12 text-red-500 text-sm bg-white rounded-3xl border border-red-100 shadow-sm space-y-2 p-4">
+                        <p class="font-bold text-base">⚠️ 連線雲端發生錯誤</p>
+                        <p class="text-xs text-gray-600 bg-red-50 p-2 rounded-lg font-mono">${error.message}</p>
                     </div>`;
                 return;
             }
@@ -219,9 +237,58 @@
         function openAddModal() {
             document.getElementById('add-modal').classList.remove('hidden');
         }
+
         function closeAddModal() {
+            stopScanner();
             document.getElementById('add-modal').classList.add('hidden');
             document.getElementById('card-form').reset();
+        }
+
+        async function toggleScanner() {
+            const readerDiv = document.getElementById('reader');
+            const btn = document.getElementById('scanner-btn');
+
+            if (scannerIsRunning) {
+                stopScanner();
+                return;
+            }
+
+            readerDiv.classList.remove('hidden');
+            btn.innerText = "關閉相機";
+            scannerIsRunning = true;
+
+            try {
+                if (!html5QrCode) {
+                    html5QrCode = new Html5Qrcode("reader");
+                }
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 250, height: 100 } },
+                    (decodedText, decodedResult) => {
+                        document.getElementById('input-number').value = decodedText;
+                        alert("成功掃描卡號：" + decodedText);
+                        stopScanner();
+                    },
+                    (errorMessage) => {}
+                );
+            } catch (err) {
+                console.error("無法啟動相機", err);
+                alert("無法開啟相機，請檢查瀏覽器相機權限，或直接手動輸入卡號。");
+                stopScanner();
+            }
+        }
+
+        async function stopScanner() {
+            if (html5QrCode && scannerIsRunning) {
+                try {
+                    await html5QrCode.stop();
+                } catch (e) {
+                    console.error(e);
+                }
+                scannerIsRunning = false;
+            }
+            document.getElementById('reader').classList.add('hidden');
+            document.getElementById('scanner-btn').innerText = "開啟相機掃描";
         }
 
         async function saveCard(e) {
