@@ -47,7 +47,7 @@
             <div class="bg-white rounded-3xl p-5 shadow-sm border border-orange-100 space-y-4">
                 <div class="border-b border-gray-100 pb-3">
                     <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>✨</span> 新增商品卡</h3>
-                    <p class="text-xs text-gray-400 mt-0.5">請掃描條碼或手動填寫資料</p>
+                    <p class="text-xs text-gray-400 mt-0.5">系統會自動檢查條碼是否重複</p>
                 </div>
 
                 <!-- 即時鏡頭掃描條碼區塊 -->
@@ -110,28 +110,25 @@
                 <h3 class="font-bold text-base text-gray-800">⚙️ 系統設定</h3>
                 <p class="text-xs text-gray-500">目前資料庫連線正常，支援雙人即時同步。</p>
                 <div class="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-xs text-orange-800 space-y-1">
-                    <p class="font-bold">💡 使用小提示：</p>
-                    <p>• 點擊條碼可放大以供超商刷取。</p>
-                    <p>• 結帳後可使用「快速扣款」隨時更新餘額。</p>
+                    <p class="font-bold">💡 功能說明：</p>
+                    <p>• 防呆機制：新增卡號時若已存在會自動攔截。</p>
+                    <p>• 編輯功能：可隨時點擊卡片上的編輯按鈕修改資料。</p>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- 底部固定導覽列 -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200/80 py-2.5 px-6 shadow-lg z-30">
+    <!-- 底部固定導覽列（只保留圖示，無文字） -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200/80 py-3 px-6 shadow-lg z-30">
         <div class="max-w-md mx-auto flex justify-around items-center">
-            <button type="button" onclick="switchTab('list')" id="nav-list" class="flex flex-col items-center gap-1 text-orange-600 cursor-pointer transition">
-                <span class="text-xl">💳</span>
-                <span class="text-[11px] font-bold">商品卡</span>
+            <button type="button" onclick="switchTab('list')" id="nav-list" class="text-orange-600 text-2xl cursor-pointer transition p-2">
+                💳
             </button>
-            <button type="button" onclick="switchTab('add')" id="nav-add" class="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 cursor-pointer transition">
-                <span class="text-xl">➕</span>
-                <span class="text-[11px] font-bold">新增卡片</span>
+            <button type="button" onclick="switchTab('add')" id="nav-add" class="text-gray-400 hover:text-gray-600 text-2xl cursor-pointer transition p-2">
+                ➕
             </button>
-            <button type="button" onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 cursor-pointer transition">
-                <span class="text-xl">⚙️</span>
-                <span class="text-[11px] font-bold">設定</span>
+            <button type="button" onclick="switchTab('settings')" id="nav-settings" class="text-gray-400 hover:text-gray-600 text-2xl cursor-pointer transition p-2">
+                ⚙️
             </button>
         </div>
     </nav>
@@ -165,6 +162,48 @@
         </div>
     </div>
 
+    <!-- 編輯卡片 Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-end sm:items-center justify-center sm:p-4">
+        <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+                <h3 class="font-bold text-lg text-gray-800 flex items-center gap-2"><span>✏️</span> 編輯商品卡</h3>
+                <button type="button" onclick="closeEditModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 font-bold">✕</button>
+            </div>
+
+            <form id="edit-form" class="space-y-3.5">
+                <input type="hidden" id="edit-id">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">卡片名稱</label>
+                    <select id="edit-name" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-orange-500 focus:bg-white transition cursor-pointer">
+                        <option value="20元商品卡">20元商品卡</option>
+                        <option value="25元商品卡">25元商品卡</option>
+                        <option value="35元商品卡">35元商品卡</option>
+                        <option value="50元商品卡">50元商品卡</option>
+                        <option value="100元商品卡">100元商品卡</option>
+                        <option value="200元商品卡">200元商品卡</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">卡號</label>
+                    <input type="text" id="edit-number" inputmode="numeric" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm font-mono focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">原始面額 (NT$)</label>
+                        <input type="number" id="edit-initial" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">目前剩餘金額 (NT$)</label>
+                        <input type="number" id="edit-balance" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-orange-500 focus:bg-white transition">
+                    </div>
+                </div>
+                <button type="submit" id="btn-submit-edit" class="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-orange-500/30 active:scale-98 transition mt-2 cursor-pointer">
+                    確認儲存修改
+                </button>
+            </form>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://ofsssxodiefoxwpwkxdk.supabase.co';
         const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_emdUXSReiJ1R2H1idbmDEA_btdE-Y6d';
@@ -179,6 +218,7 @@
             document.getElementById('btn-close-barcode-bottom').addEventListener('click', closeBarcodeModal);
             document.getElementById('input-name').addEventListener('change', onCardTypeChange);
             document.getElementById('card-form').addEventListener('submit', saveCard);
+            document.getElementById('edit-form').addEventListener('submit', updateCard);
             document.getElementById('scanner-btn').addEventListener('click', toggleScanner);
 
             document.addEventListener('visibilitychange', async () => {
@@ -190,7 +230,6 @@
             fetchCards();
         });
 
-        // 底部導覽列分頁切換邏輯
         function switchTab(tab) {
             const pageList = document.getElementById('page-list');
             const pageAdd = document.getElementById('page-add');
@@ -201,28 +240,27 @@
             const navAdd = document.getElementById('nav-add');
             const navSettings = document.getElementById('nav-settings');
 
-            // 預設全部隱藏、按鈕變灰
             pageList.classList.add('hidden');
             pageAdd.classList.add('hidden');
             pageSettings.classList.add('hidden');
             
-            [navList, navAdd, navSettings].forEach(el => {
-                el.className = "flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 cursor-pointer transition";
-            });
+            navList.className = "text-gray-400 hover:text-gray-600 text-2xl cursor-pointer transition p-2";
+            navAdd.className = "text-gray-400 hover:text-gray-600 text-2xl cursor-pointer transition p-2";
+            navSettings.className = "text-gray-400 hover:text-gray-600 text-2xl cursor-pointer transition p-2";
 
             if (tab === 'list') {
                 pageList.classList.remove('hidden');
                 headerTitle.innerText = '商品卡列表';
-                navList.className = "flex flex-col items-center gap-1 text-orange-600 cursor-pointer transition";
+                navList.className = "text-orange-600 text-2xl cursor-pointer transition p-2";
                 stopScanner();
             } else if (tab === 'add') {
                 pageAdd.classList.remove('hidden');
                 headerTitle.innerText = '新增商品卡';
-                navAdd.className = "flex flex-col items-center gap-1 text-orange-600 cursor-pointer transition";
+                navAdd.className = "text-orange-600 text-2xl cursor-pointer transition p-2";
             } else if (tab === 'settings') {
                 pageSettings.classList.remove('hidden');
                 headerTitle.innerText = '系統設定';
-                navSettings.className = "flex flex-col items-center gap-1 text-orange-600 cursor-pointer transition";
+                navSettings.className = "text-orange-600 text-2xl cursor-pointer transition p-2";
                 stopScanner();
             }
         }
@@ -399,7 +437,7 @@
                     <div class="text-center py-16 text-gray-400 text-sm bg-white/80 rounded-3xl border border-gray-100 shadow-sm space-y-2">
                         <div class="text-4xl">🏷️</div>
                         <p class="font-medium text-gray-600">目前沒有儲存的商品卡</p>
-                        <p class="text-xs text-gray-400">點擊下方「新增卡片」開始建立吧！</p>
+                        <p class="text-xs text-gray-400">點擊下方「➕」開始建立吧！</p>
                     </div>`;
                 return;
             }
@@ -426,14 +464,17 @@
                             <span class="text-xs text-gray-400 block mt-0.5">原始面額 $${card.initial_amount}</span>
                         </div>
                     </div>
-                    <div class="flex gap-2.5 pt-3 border-t border-gray-100/80">
-                        <button type="button" onclick="showBarcode('${card.card_number}', '${card.name}', ${card.balance})" class="flex-1 bg-orange-50 text-orange-600 py-2.5 rounded-2xl text-xs font-bold active:scale-95 transition flex items-center justify-center gap-1 cursor-pointer">
+                    <div class="flex gap-2 pt-3 border-t border-gray-100/80">
+                        <button type="button" onclick="showBarcode('${card.card_number}', '${card.name}', ${card.balance})" class="flex-1 bg-orange-50 text-orange-600 py-2 rounded-xl text-xs font-bold active:scale-95 transition flex items-center justify-center gap-1 cursor-pointer">
                             <span>🖥️</span> 顯示條碼
                         </button>
-                        <button type="button" onclick="promptDeduct('${card.id}', ${card.balance})" class="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-2xl text-xs font-bold active:scale-95 transition flex items-center justify-center gap-1 cursor-pointer">
+                        <button type="button" onclick="promptDeduct('${card.id}', ${card.balance})" class="flex-1 bg-gray-100 text-gray-700 py-2 rounded-xl text-xs font-bold active:scale-95 transition flex items-center justify-center gap-1 cursor-pointer">
                             <span>💳</span> 快速扣款
                         </button>
-                        <button type="button" onclick="deleteCard('${card.id}')" class="w-10 bg-gray-50 text-gray-400 hover:text-red-500 rounded-2xl transition flex items-center justify-center text-xs cursor-pointer" title="刪除">
+                        <button type="button" onclick="openEditModal('${card.id}', '${card.name}', '${card.card_number}', ${card.initial_amount}, ${card.balance})" class="w-9 bg-gray-50 text-gray-500 hover:text-orange-600 rounded-xl transition flex items-center justify-center text-xs cursor-pointer" title="修改">
+                            ✏️
+                        </button>
+                        <button type="button" onclick="deleteCard('${card.id}')" class="w-9 bg-gray-50 text-gray-400 hover:text-red-500 rounded-xl transition flex items-center justify-center text-xs cursor-pointer" title="刪除">
                             🗑️
                         </button>
                     </div>
@@ -442,14 +483,23 @@
             });
         }
 
+        // 新增卡片（含防重複檢查機制）
         async function saveCard(e) {
             e.preventDefault();
+            const card_number = document.getElementById('input-number').value.trim();
+
+            // 防呆檢查：檢查資料庫中是否已有相同的卡號
+            const isDuplicate = cardsData.some(card => card.card_number === card_number);
+            if (isDuplicate) {
+                alert(`⚠️ 防呆攔截：此卡號 (${card_number}) 已經存在系統中了！請確認是否重複輸入。`);
+                return;
+            }
+
             const btn = document.getElementById('btn-submit-card');
             btn.disabled = true;
             btn.innerText = '儲存中...';
 
             const name = document.getElementById('input-name').value;
-            const card_number = document.getElementById('input-number').value.trim();
             const initial_amount = Number(document.getElementById('input-initial').value);
             const balance = Number(document.getElementById('input-balance').value);
 
@@ -476,13 +526,63 @@
 
                 document.getElementById('card-form').reset();
                 onCardTypeChange();
-                fetchCards();
-                switchTab('list'); // 儲存成功後自動切回列表頁
+                await fetchCards();
+                switchTab('list');
             } catch (err) {
                 alert('儲存失敗：' + err.message);
             } finally {
                 btn.disabled = false;
                 btn.innerText = '確認儲存卡片';
+            }
+        }
+
+        // 開啟編輯 Modal
+        function openEditModal(id, name, cardNumber, initialAmount, balance) {
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-name').value = name;
+            document.getElementById('edit-number').value = cardNumber;
+            document.getElementById('edit-initial').value = initialAmount;
+            document.getElementById('edit-balance').value = balance;
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        // 提交修改卡片資料
+        async function updateCard(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const name = document.getElementById('edit-name').value;
+            const card_number = document.getElementById('edit-number').value.trim();
+            const initial_amount = Number(document.getElementById('edit-initial').value);
+            const balance = Number(document.getElementById('edit-balance').value);
+
+            const btn = document.getElementById('btn-submit-edit');
+            btn.disabled = true;
+            btn.innerText = '儲存修改中...';
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/seven_cards?id=eq.${id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_PUBLISHABLE_KEY,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ name, card_number, initial_amount, balance })
+                });
+
+                if (!response.ok) throw new Error('修改更新失敗');
+
+                closeEditModal();
+                await fetchCards();
+            } catch (err) {
+                alert('修改失敗：' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = '確認儲存修改';
             }
         }
 
