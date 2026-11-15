@@ -13,7 +13,6 @@
     <style>
         body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
         #barcode-canvas { width: 100%; max-width: 100%; height: auto; }
-        /* 導覽列圖示選中時的精緻動態感 */
         .nav-item { transition: all 0.2s ease; }
         .nav-item.active { transform: translateY(-2px); }
     </style>
@@ -37,6 +36,30 @@
     <main class="max-w-md mx-auto p-4 space-y-4 relative z-10">
         <!-- 分頁 1：商品卡列表頁 -->
         <div id="page-list" class="space-y-3.5">
+            <!-- 篩選與排序控制列 -->
+            <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-orange-100 flex gap-2.5 items-center">
+                <div class="flex-1">
+                    <label class="block text-[10px] font-bold text-gray-400 mb-0.5">面額篩選</label>
+                    <select id="filter-amount" onchange="renderCards()" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-2.5 text-xs font-bold text-gray-700 focus:outline-none focus:border-orange-500 cursor-pointer">
+                        <option value="all">全部面額</option>
+                        <option value="20">20元</option>
+                        <option value="25">25元</option>
+                        <option value="35">35元</option>
+                        <option value="50">50元</option>
+                        <option value="100">100元</option>
+                        <option value="200">200元</option>
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-[10px] font-bold text-gray-400 mb-0.5">排序方式</label>
+                    <select id="sort-order" onchange="renderCards()" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-2.5 text-xs font-bold text-gray-700 focus:outline-none focus:border-orange-500 cursor-pointer">
+                        <option value="balance-desc">剩餘金額 (高到低)</option>
+                        <option value="balance-asc">剩餘金額 (低到高)</option>
+                        <option value="newest">新增時間 (最新)</option>
+                    </select>
+                </div>
+            </div>
+
             <div id="card-list" class="space-y-3.5">
                 <div class="text-center py-16 text-gray-400 text-sm bg-white/80 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-2">
                     <div class="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
@@ -53,7 +76,6 @@
                     <p class="text-xs text-gray-400 mt-0.5">系統會自動檢查條碼是否重複</p>
                 </div>
 
-                <!-- 即時鏡頭掃描條碼區塊 -->
                 <div class="bg-orange-50 border border-orange-100 p-3.5 rounded-2xl space-y-2.5">
                     <div class="flex justify-between items-center">
                         <div>
@@ -114,14 +136,14 @@
                 <p class="text-xs text-gray-500">目前資料庫連線正常，支援雙人即時同步。</p>
                 <div class="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-xs text-orange-800 space-y-1">
                     <p class="font-bold">💡 功能說明：</p>
+                    <p>• 篩選排序：可依面額或金額高低快速整理列表。</p>
                     <p>• 防呆機制：新增卡號時若已存在會自動攔截。</p>
-                    <p>• 編輯功能：可隨時點擊卡片上的編輯按鈕修改資料。</p>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- 底部固定導覽列（質感懸浮膠囊設計、無文字、圖示升級） -->
+    <!-- 底部固定導覽列 -->
     <nav class="fixed bottom-4 left-4 right-4 z-30 max-w-md mx-auto">
         <div class="bg-white/90 backdrop-blur-md border border-orange-100/80 rounded-full py-2.5 px-6 shadow-xl flex justify-around items-center">
             <button type="button" onclick="switchTab('list')" id="nav-list" class="nav-item active flex items-center justify-center w-12 h-10 rounded-full bg-orange-500 text-white text-xl shadow-md cursor-pointer transition">
@@ -434,6 +456,8 @@
 
         function renderCards() {
             const listEl = document.getElementById('card-list');
+            const filterVal = document.getElementById('filter-amount').value;
+            const sortVal = document.getElementById('sort-order').value;
 
             if (cardsData.length === 0) {
                 listEl.innerHTML = `
@@ -445,10 +469,34 @@
                 return;
             }
 
-            const sorted = [...cardsData].sort((a, b) => (b.balance > 0) - (a.balance > 0));
+            // 1. 篩選面額
+            let filtered = cardsData.filter(card => {
+                if (filterVal === 'all') return true;
+                return Number(card.initial_amount) === Number(filterVal);
+            });
+
+            // 2. 排序處理
+            filtered.sort((a, b) => {
+                if (sortVal === 'balance-desc') {
+                    return Number(b.balance) - Number(a.balance);
+                } else if (sortVal === 'balance-asc') {
+                    return Number(a.balance) - Number(b.balance);
+                } else if (sortVal === 'newest') {
+                    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                }
+                return 0;
+            });
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-12 text-gray-400 text-sm bg-white/80 rounded-3xl border border-gray-100 shadow-sm space-y-2">
+                        <p class="font-medium text-gray-600">找不到符合此面額的商品卡</p>
+                    </div>`;
+                return;
+            }
 
             listEl.innerHTML = '';
-            sorted.forEach(card => {
+            filtered.forEach(card => {
                 const isDepleted = Number(card.balance) <= 0;
 
                 const cardEl = document.createElement('div');
