@@ -6,6 +6,8 @@
     <title>7-11 商品卡錢包</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <!-- 引入 html5-qrcode 實現真正即時鏡頭對準自動掃描 -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
@@ -73,16 +75,19 @@
                 <button type="button" id="btn-close-add" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 font-bold">✕</button>
             </div>
 
-            <!-- 拍照辨識區塊 -->
-            <div class="bg-orange-50 border border-orange-100 p-3.5 rounded-2xl flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-bold text-orange-800">📷 快速拍照辨識條碼</p>
-                    <p class="text-[11px] text-orange-600 mt-0.5">點擊右側直接拍攝卡片背面條碼</p>
+            <!-- 即時鏡頭掃描條碼區塊 -->
+            <div class="bg-orange-50 border border-orange-100 p-3.5 rounded-2xl space-y-2.5">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-xs font-bold text-orange-800">📷 即時掃描條碼</p>
+                        <p class="text-[11px] text-orange-600 mt-0.5">對準背面條碼即自動帶入</p>
+                    </div>
+                    <button type="button" id="scanner-btn" class="bg-orange-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow active:scale-95 transition cursor-pointer">
+                        開啟鏡頭掃描
+                    </button>
                 </div>
-                <label class="bg-orange-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow active:scale-95 transition cursor-pointer flex items-center gap-1">
-                    <span>📸</span> 拍照帶入
-                    <input type="file" id="barcode-file-input" accept="image/*" capture="environment" class="hidden">
-                </label>
+                <!-- 掃描鏡頭顯示框 -->
+                <div id="reader" class="hidden overflow-hidden rounded-xl border border-orange-200 bg-black"></div>
             </div>
 
             <form id="card-form" class="space-y-3.5">
@@ -126,12 +131,13 @@
     </div>
 
     <script>
-        // 使用傳統 Anon Public Key 確保驗證透過
         const SUPABASE_URL = 'https://ofsssxodiefoxwpwkxdk.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mc3N4b2RpZWZveHdwd2t4ZGsifQ.DUMMY_KEY_FIX'; // 已對應你的專案 anon public 格式
+        const SUPABASE_ANON_KEY = 'sb_publishable_emdXSRelJ1R2H1idbmDEA_btdE-Y6d';
 
         let supabaseClient = null;
         let cardsData = [];
+        let html5QrCode = null;
+        let scannerIsRunning = false;
 
         document.getElementById('btn-open-add').addEventListener('click', () => {
             document.getElementById('add-modal').classList.remove('hidden');
@@ -144,7 +150,7 @@
 
         document.getElementById('input-name').addEventListener('change', onCardTypeChange);
         document.getElementById('card-form').addEventListener('submit', saveCard);
-        document.getElementById('barcode-file-input').addEventListener('change', handleImageScan);
+        document.getElementById('scanner-btn').addEventListener('click', toggleScanner);
 
         function onCardTypeChange() {
             const nameSelect = document.getElementById('input-name').value;
@@ -157,9 +163,57 @@
         }
 
         function closeAddModal() {
+            stopScanner();
             document.getElementById('add-modal').classList.add('hidden');
             document.getElementById('card-form').reset();
             onCardTypeChange();
+        }
+
+        async function toggleScanner() {
+            const readerDiv = document.getElementById('reader');
+            const btn = document.getElementById('scanner-btn');
+
+            if (scannerIsRunning) {
+                await stopScanner();
+                return;
+            }
+
+            readerDiv.classList.remove('hidden');
+            btn.innerText = "關閉鏡頭";
+            scannerIsRunning = true;
+
+            try {
+                if (!html5QrCode) {
+                    html5QrCode = new Html5Qrcode("reader");
+                }
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 15, qrbox: { width: 280, height: 120 } },
+                    (decodedText) => {
+                        // 掃到條碼瞬間自動填入並關閉鏡頭
+                        document.getElementById('input-number').value = decodedText;
+                        stopScanner();
+                    },
+                    (errorMessage) => {}
+                );
+            } catch (err) {
+                console.error("無法開啟相機", err);
+                alert("無法開啟相機，請檢查瀏覽器相機權限。");
+                stopScanner();
+            }
+        }
+
+        async function stopScanner() {
+            if (html5QrCode && scannerIsRunning) {
+                try {
+                    await html5QrCode.stop();
+                } catch (e) {
+                    console.error(e);
+                }
+                scannerIsRunning = false;
+            }
+            document.getElementById('reader').classList.add('hidden');
+            document.getElementById('scanner-btn').innerText = "開啟鏡頭掃描";
         }
 
         async function init() {
@@ -167,8 +221,7 @@
                 if (!window.supabase) {
                     throw new Error('Supabase 套件載入失敗');
                 }
-                // 如果需要替換你後台真正的 anon key，請將下方引號內換成你的 anon public 密鑰
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, 'sb_publishable_emdXSRelJ1R2H1idbmDEA_btdE-Y6d');
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 await fetchCards();
 
                 supabaseClient
@@ -288,25 +341,6 @@
             } catch (e) {
                 console.error(e);
             }
-        }
-
-        async function handleImageScan(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            if ('BarcodeDetector' in window) {
-                try {
-                    const bitmap = await createImageBitmap(file);
-                    const detector = new BarcodeDetector({ formats: ['code_128', 'ean_13', 'code_39', 'itf'] });
-                    const barcodes = await detector.detect(bitmap);
-                    if (barcodes.length > 0) {
-                        document.getElementById('input-number').value = barcodes[0].rawValue;
-                        alert('成功辨識卡號：' + barcodes[0].rawValue);
-                        return;
-                    }
-                } catch (err) {}
-            }
-            alert('已成功拍照！請對照照片於下方手動輸入 16 碼卡號。');
         }
 
         async function saveCard(e) {
