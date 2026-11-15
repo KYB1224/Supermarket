@@ -7,8 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <!-- 使用最新版的 Supabase JS SDK 以完整支援 sb_publishable_ 金鑰格式 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+    <!-- 使用完全支援新版 Publishable Key 的 Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -131,7 +131,7 @@
     </div>
 
     <script>
-        // 你的 Supabase 專案設定 (必須使用 Publishable / Anon 公開金鑰，不可使用 sb_secret_)
+        // 正確對應你的專案網址與 Publishable Key
         const SUPABASE_URL = 'https://ofsssxodiefoxwpwkxdk.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_emdXSRelJ1R2H1idbmDEA_btdE-Y6d';
 
@@ -285,7 +285,6 @@
                 <div class="text-center py-10 text-red-500 text-sm bg-white rounded-3xl border border-red-100 shadow-sm space-y-2 p-4">
                     <p class="font-bold text-base">⚠️ 載入異常</p>
                     <p class="text-xs text-gray-600 bg-red-50 p-2 rounded-lg font-mono">${msg}</p>
-                    <p class="text-[11px] text-gray-400">若仍顯示 Invalid API key，請至 Supabase 後台 Project Settings > API Keys 確認 Publishable key 是否有誤。</p>
                     <button type="button" onclick="fetchCards()" class="mt-2 bg-orange-500 text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer">重新連線</button>
                 </div>`;
         }
