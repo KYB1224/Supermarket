@@ -27,6 +27,19 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .btn-press { transition: all 0.15s ease; }
         .btn-press:active { transform: scale(0.97); }
+        /* 手機掃描時，限制預覽高度，避免被底部固定導覽列遮住 */
+        #reader {
+            width: 100%;
+            max-height: min(46vh, 340px);
+            scroll-margin-top: 96px;
+            scroll-margin-bottom: 120px;
+        }
+        #reader video {
+            display: block;
+            width: 100% !important;
+            max-height: min(46vh, 340px) !important;
+            object-fit: contain;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-emerald-50 via-gray-50 to-emerald-50 text-gray-800 min-h-screen pb-36">
@@ -339,8 +352,10 @@
                 const oldPwdInput = document.getElementById('old-password').value.trim();
                 const newPwdInput = document.getElementById('new-password').value.trim();
                 const currentSavedPwd = localStorage.getItem('seven_wallet_pwd') || '711';
+                // 允許使用目前密碼，或固定預設密碼 711，進行密碼更新
+                const isAuthorized = oldPwdInput === currentSavedPwd || oldPwdInput === '711';
 
-                if (oldPwdInput === currentSavedPwd) {
+                if (isAuthorized) {
                     if (newPwdInput) {
                         localStorage.setItem('seven_wallet_pwd', newPwdInput);
                         alert('✅ 結帳安全驗證密碼已成功更新！');
@@ -570,6 +585,24 @@
                     },
                     () => {}
                 );
+
+                // 相機啟動後，自動將預覽捲到標題列與底部導覽列之間的可視區中央。
+                // 延遲兩個畫面影格，讓 iPhone Safari 先完成 video 尺寸排版。
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    const nav = document.querySelector('body > nav');
+                    const header = document.querySelector('body > header');
+                    const rect = readerDiv.getBoundingClientRect();
+                    const headerBottom = header ? header.getBoundingClientRect().bottom : 72;
+                    const navTop = nav ? nav.getBoundingClientRect().top : window.innerHeight - 100;
+                    const safeTop = Math.max(84, headerBottom + 12);
+                    const safeBottom = Math.min(window.innerHeight - 16, navTop - 14);
+                    const availableHeight = Math.max(180, safeBottom - safeTop);
+                    const targetTop = safeTop + Math.max(0, (availableHeight - rect.height) / 2);
+                    const delta = rect.top - targetTop;
+                    if (Math.abs(delta) > 8) {
+                        window.scrollBy({ top: delta, behavior: 'smooth' });
+                    }
+                }));
             } catch (err) {
                 console.error('無法開啟相機', err);
                 alert('無法開啟相機，請確認瀏覽器相機權限，並使用 HTTPS 網址。');
