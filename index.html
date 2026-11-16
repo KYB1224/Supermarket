@@ -85,19 +85,6 @@
                     <p class="text-xs text-gray-400 mt-0.5">系統會自動檢查條碼是否重複</p>
                 </div>
 
-                <div class="bg-emerald-50/70 border border-emerald-100 p-3.5 rounded-2xl space-y-2.5">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <p class="text-xs font-bold text-emerald-900">📷 即時掃描一維條碼</p>
-                            <p class="text-[11px] text-emerald-700 mt-0.5">請對準背面下方長條狀條碼</p>
-                        </div>
-                        <button type="button" id="scanner-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-md shadow-emerald-600/30 btn-press cursor-pointer">
-                            開啟鏡頭掃描
-                        </button>
-                    </div>
-                    <div id="reader" class="hidden overflow-hidden rounded-2xl border border-emerald-200 bg-black"></div>
-                </div>
-
                 <form id="card-form" class="space-y-3.5">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">卡片名稱 (面額)</label>
@@ -117,6 +104,15 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">目前剩餘金額 (NT$)</label>
                         <input type="number" id="input-balance" required value="35" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
+                    </div>
+                    <div class="pt-1 space-y-2">
+                        <div class="flex justify-start">
+                            <button type="button" id="scanner-btn" class="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-800 text-xs font-bold px-4 py-3 rounded-2xl btn-press cursor-pointer">
+                                📷 開啟相機掃描
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-gray-400">將鏡頭對準卡片背面下方的一維長條碼，保持卡片平整並稍微移動距離。</p>
+                        <div id="reader" class="hidden overflow-hidden rounded-2xl border border-emerald-200 bg-black"></div>
                     </div>
                     <button type="submit" id="btn-submit-card" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-emerald-600/30 btn-press mt-2 cursor-pointer">
                         確認儲存卡片
@@ -154,7 +150,7 @@
             <!-- 📈 面額與使用統計區塊 -->
             <div class="bg-white rounded-3xl p-5 shadow-md shadow-gray-200/50 border border-emerald-100/60 space-y-3">
                 <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>📊</span> 累積面額統計分析</h3>
-                <p class="text-xs text-gray-400">各面額累積使用與持有情形統計（含歷史已刪除卡片）。</p>
+                <p class="text-xs text-gray-400">依新增紀錄累計購買張數與面額；刪除商品卡不會影響歷史統計。</p>
                 
                 <div class="overflow-x-auto pt-1">
                     <table class="w-full text-xs text-left">
@@ -162,7 +158,7 @@
                             <tr class="border-b border-gray-200 text-gray-400 font-bold">
                                 <th class="pb-2 pl-1">面額種類</th>
                                 <th class="pb-2 text-center">總張數</th>
-                                <th class="pb-2 text-right pr-1">歷史總面額小計</th>
+                                <th class="pb-2 text-right pr-1">累積面額小計</th>
                             </tr>
                         </thead>
                         <tbody id="denomination-stats-list" class="divide-y divide-gray-100">
@@ -173,7 +169,7 @@
 
                 <div id="denomination-stats-footer" class="pt-3 border-t border-gray-100 flex justify-between items-center text-xs font-bold text-gray-800 px-1">
                     <span>總共 0 張卡</span>
-                    <span class="text-emerald-700 text-sm">歷史總金額 NT$ 0</span>
+                    <span class="text-emerald-700 text-sm">累積面額 NT$ 0</span>
                 </div>
             </div>
 
@@ -528,42 +524,56 @@
         async function toggleScanner() {
             const readerDiv = document.getElementById('reader');
             const btn = document.getElementById('scanner-btn');
-
             if (scannerIsRunning) {
                 await stopScanner();
                 return;
             }
 
             readerDiv.classList.remove('hidden');
-            btn.innerText = "關閉鏡頭";
+            btn.innerText = '關閉相機掃描';
             scannerIsRunning = true;
 
             try {
                 if (!html5QrCode) {
-                    html5QrCode = new Html5Qrcode("reader", {
+                    html5QrCode = new Html5Qrcode('reader', {
+                        // 以 7-ELEVEN 卡片的一維條碼為主，避免同時解碼過多格式拖慢速度
                         formatsToSupport: [
                             Html5QrcodeSupportedFormats.CODE_128,
-                            Html5QrcodeSupportedFormats.EAN_13,
-                            Html5QrcodeSupportedFormats.CODE_39
+                            Html5QrcodeSupportedFormats.ITF
                         ],
                         verbose: false
                     });
                 }
                 await html5QrCode.start(
-                    { facingMode: "environment" },
-                    { fps: 20, qrbox: { width: 300, height: 100 } },
+                    { facingMode: 'environment' },
+                    {
+                        fps: 15,
+                        qrbox: (viewfinderWidth, viewfinderHeight) => ({
+                            width: Math.max(260, Math.min(Math.floor(viewfinderWidth * 0.94), 440)),
+                            height: Math.max(110, Math.min(Math.floor(viewfinderHeight * 0.42), 190))
+                        }),
+                        aspectRatio: 1.777,
+                        videoConstraints: {
+                            facingMode: { ideal: 'environment' },
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 }
+                        }
+                    },
                     (decodedText) => {
-                        if (/^\d{10,20}$/.test(decodedText)) {
-                            document.getElementById('input-number').value = decodedText;
+                        // 只接受卡片一維條碼讀出的 10–20 位英數字；不再把亂碼直接寫入欄位
+                        const value = String(decodedText || '').trim();
+                        if (/^\d{10,20}$/.test(value)) {
+                            document.getElementById('input-number').value = value;
+                            if (navigator.vibrate) navigator.vibrate(100);
                             stopScanner();
                         }
                     },
-                    (errorMessage) => {}
+                    () => {}
                 );
             } catch (err) {
-                console.error("無法開啟相機", err);
-                alert("無法開啟相機，請檢查瀏覽器相機權限。");
-                stopScanner();
+                console.error('無法開啟相機', err);
+                alert('無法開啟相機，請確認瀏覽器相機權限，並使用 HTTPS 網址。');
+                await stopScanner();
             }
         }
 
@@ -575,7 +585,7 @@
                 scannerIsRunning = false;
             }
             document.getElementById('reader').classList.add('hidden');
-            document.getElementById('scanner-btn').innerText = "開啟鏡頭掃描";
+            document.getElementById('scanner-btn').innerText = '📷 開啟相機掃描';
         }
 
         async function fetchCards() {
@@ -627,56 +637,79 @@
             document.getElementById('stats-total-count').innerText = `${availableCount} 張`;
         }
 
-        // 🔥 改良版：結合「目前列表中的卡片」＋「回收筒中的歷史卡片」來計算總面額歷史統計，刪除後數據也不會消失！
-        function renderDenominationStats() {
+        // 歷史統計獨立存放於 Supabase seven_card_history；刪除目前卡片或清空回收筒都不會刪除統計。
+        async function syncHistoryRecords(records) {
+            const unique = new Map();
+            records.forEach(card => {
+                if (!card || !card.card_number) return;
+                const amount = Number(card.initial_amount) || 0;
+                if (amount > 0) unique.set(String(card.card_number), {
+                    card_number: String(card.card_number),
+                    name: card.name || `${amount}元商品卡`,
+                    initial_amount: amount
+                });
+            });
+            if (!unique.size) return;
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/seven_card_history?on_conflict=card_number`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_PUBLISHABLE_KEY,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'resolution=merge-duplicates,return=minimal'
+                },
+                body: JSON.stringify([...unique.values()])
+            });
+            if (!response.ok) {
+                const detail = await response.text();
+                throw new Error(`歷史統計同步失敗：${detail}`);
+            }
+        }
+
+        async function renderDenominationStats() {
             const tbody = document.getElementById('denomination-stats-list');
             const footer = document.getElementById('denomination-stats-footer');
-
-            // 合併目前資料與回收筒暫存的歷史卡片資料
-            const allCombinedCards = [...cardsData, ...trashData];
-
-            if (!allCombinedCards || allCombinedCards.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-gray-400">目前沒有資料</td></tr>`;
-                footer.innerHTML = `<span>總共 0 張卡</span><span class="text-emerald-700 text-sm">歷史總金額 NT$ 0</span>`;
-                return;
-            }
-
-            const stats = {};
-            let totalCount = 0;
-            let grandTotalAmount = 0;
-
-            allCombinedCards.forEach(card => {
-                const initial = Number(card.initial_amount) || 0;
-                
-                if (!stats[initial]) {
-                    stats[initial] = { count: 0, totalAmount: 0 };
+            try {
+                // 將現有卡片及舊回收筒資料補進歷史表，避免升級前的卡片漏算
+                await syncHistoryRecords([...cardsData, ...trashData]);
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/seven_card_history?select=card_number,name,initial_amount&order=created_at.asc`, {
+                    headers: { 'apikey': SUPABASE_PUBLISHABLE_KEY }
+                });
+                if (!response.ok) throw new Error(await response.text());
+                const history = await response.json();
+                const stats = {};
+                let totalCount = 0;
+                let grandTotalAmount = 0;
+                history.forEach(card => {
+                    const amount = Number(card.initial_amount) || 0;
+                    if (amount <= 0) return;
+                    if (!stats[amount]) stats[amount] = { count: 0, totalAmount: 0 };
+                    stats[amount].count += 1;
+                    stats[amount].totalAmount += amount;
+                    totalCount += 1;
+                    grandTotalAmount += amount;
+                });
+                const sortedKeys = Object.keys(stats).map(Number).sort((a, b) => a - b);
+                if (!sortedKeys.length) {
+                    tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-gray-400">目前還沒有累積紀錄</td></tr>`;
+                } else {
+                    tbody.innerHTML = '';
+                    sortedKeys.forEach(denom => {
+                        const item = stats[denom];
+                        const tr = document.createElement('tr');
+                        tr.className = 'hover:bg-gray-50/50 transition';
+                        tr.innerHTML = `
+                            <td class="py-2.5 pl-1 font-bold text-gray-700">${denom}元面額</td>
+                            <td class="py-2.5 text-center font-mono font-bold text-emerald-700">${item.count} 張</td>
+                            <td class="py-2.5 text-right pr-1 font-mono font-bold text-gray-800">$${item.totalAmount.toLocaleString()}</td>`;
+                        tbody.appendChild(tr);
+                    });
                 }
-                stats[initial].count += 1;
-                stats[initial].totalAmount += initial; // 統計歷史總面額（以原始面額計算累計購買資產）
-                
-                totalCount += 1;
-                grandTotalAmount += initial;
-            });
-
-            const sortedKeys = Object.keys(stats).map(Number).sort((a, b) => a - b);
-
-            tbody.innerHTML = '';
-            sortedKeys.forEach(denom => {
-                const item = stats[denom];
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50/50 transition";
-                tr.innerHTML = `
-                    <td class="py-2.5 pl-1 font-bold text-gray-700">${denom}元面額</td>
-                    <td class="py-2.5 text-center font-mono font-bold text-emerald-700">${item.count} 張</td>
-                    <td class="py-2.5 text-right pr-1 font-mono font-bold text-gray-800">$${item.totalAmount.toLocaleString()}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            footer.innerHTML = `
-                <span class="font-bold text-gray-600">歷史總共 ${totalCount} 張卡</span>
-                <span class="text-emerald-700 text-sm font-black">歷史總金額 NT$ ${grandTotalAmount.toLocaleString()}</span>
-            `;
+                footer.innerHTML = `<span class="font-bold text-gray-600">歷史累積 ${totalCount} 張</span><span class="text-emerald-700 text-sm font-black">累積面額 NT$ ${grandTotalAmount.toLocaleString()}</span>`;
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-amber-700">歷史統計資料庫尚未設定，請先執行附上的 SQL 設定。</td></tr>`;
+                footer.innerHTML = `<span class="text-gray-500">尚未連接歷史統計</span><span class="text-emerald-700">—</span>`;
+            }
         }
 
         function showError(msg) {
@@ -910,7 +943,6 @@
 
                 cardToMove.trash_source = source;
                 trashData.unshift(cardToMove);
-                if (trashData.length > 20) trashData.pop();
                 localStorage.setItem('seven_cards_trash', JSON.stringify(trashData));
 
                 fetchCards();
