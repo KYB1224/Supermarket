@@ -157,7 +157,7 @@
             <!-- 🔐 結帳安全解鎖密碼設定 -->
             <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
                 <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🔐</span> 結帳安全驗證密碼</h3>
-                <p class="text-xs text-gray-400">變更密碼時需先驗證（若忘記密碼可輸入預設密碼進行重設）</p>
+                <p class="text-xs text-gray-400">（若忘記密碼可輸入預設密碼進行重設）</p>
                 <form id="password-form" class="space-y-3">
                     <div>
                         <label class="block text-[11px] font-bold text-gray-500 mb-1">請輸入目前舊密碼</label>
@@ -198,11 +198,20 @@
         </div>
     </div>
 
-    <!-- 底部固定導覽列 -->
+    <!-- 底部固定導覽列 (左側改為精緻一維條碼向量圖示) -->
     <nav class="fixed bottom-4 left-4 right-4 z-30 max-w-md mx-auto">
         <div class="bg-white/90 backdrop-blur-md border border-orange-100/80 rounded-full py-2.5 px-6 shadow-xl flex justify-around items-center">
-            <button type="button" onclick="switchTab('list')" id="nav-list" class="nav-item active flex items-center justify-center w-12 h-10 rounded-full bg-orange-500 text-white text-xl shadow-md cursor-pointer transition">
-                💳
+            <button type="button" onclick="switchTab('list')" id="nav-list" class="nav-item active flex items-center justify-center w-12 h-10 rounded-full bg-orange-500 text-white shadow-md cursor-pointer transition">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="2.5" y="4" width="1.5" height="16" rx="0.5"/>
+                    <rect x="5" y="4" width="2.5" height="16" rx="0.5"/>
+                    <rect x="8.5" y="4" width="1" height="16" rx="0.3"/>
+                    <rect x="10.5" y="4" width="2" height="16" rx="0.5"/>
+                    <rect x="13.5" y="4" width="1" height="16" rx="0.3"/>
+                    <rect x="15.5" y="4" width="2.5" height="16" rx="0.5"/>
+                    <rect x="19" y="4" width="1" height="16" rx="0.3"/>
+                    <rect x="21" y="4" width="1.5" height="16" rx="0.5"/>
+                </svg>
             </button>
             <button type="button" onclick="switchTab('add')" id="nav-add" class="nav-item flex items-center justify-center w-12 h-10 rounded-full text-gray-400 hover:text-gray-600 text-xl cursor-pointer transition">
                 ➕
@@ -400,23 +409,26 @@
             pageAdd.classList.add('hidden');
             pageSettings.classList.add('hidden');
             
-            navList.className = "nav-item flex items-center justify-center w-12 h-10 rounded-full text-gray-400 hover:text-gray-600 text-xl cursor-pointer transition";
-            navAdd.className = "nav-item flex items-center justify-center w-12 h-10 rounded-full text-gray-400 hover:text-gray-600 text-xl cursor-pointer transition";
-            navSettings.className = "nav-item flex items-center justify-center w-12 h-10 rounded-full text-gray-400 hover:text-gray-600 text-xl cursor-pointer transition";
+            const inactiveClass = "nav-item flex items-center justify-center w-12 h-10 rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition";
+            const activeClass = "nav-item active flex items-center justify-center w-12 h-10 rounded-full bg-orange-500 text-white shadow-md cursor-pointer transition";
+
+            navList.className = inactiveClass;
+            navAdd.className = inactiveClass;
+            navSettings.className = inactiveClass;
 
             if (tab === 'list') {
                 pageList.classList.remove('hidden');
                 headerTitle.innerText = '商品卡列表';
-                navList.className = "nav-item active flex items-center justify-center w-12 h-10 rounded-full bg-orange-500 text-white text-xl shadow-md cursor-pointer transition";
+                navList.className = activeClass;
                 stopScanner();
             } else if (tab === 'add') {
                 pageAdd.classList.remove('hidden');
                 headerTitle.innerText = '新增商品卡';
-                navAdd.className = "nav-item active flex items-center justify-center w-12 h-10 rounded-full bg-orange-500 text-white text-xl shadow-md cursor-pointer transition";
+                navAdd.className = activeClass;
             } else if (tab === 'settings') {
                 pageSettings.classList.remove('hidden');
                 headerTitle.innerText = '系統設定';
-                navSettings.className = "nav-item active flex items-center justify-center w-12 h-10 rounded-full bg-orange-500 text-white text-xl shadow-md cursor-pointer transition";
+                navSettings.className = activeClass;
                 stopScanner();
                 updateStats();
                 renderTrash();
