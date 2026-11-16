@@ -118,6 +118,11 @@
                         <label class="block text-xs font-bold text-gray-500 mb-1">目前剩餘金額 (NT$)</label>
                         <input type="number" id="input-balance" required value="35" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
                     </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">商品卡到期日（選填）</label>
+                        <input type="date" id="input-expiry-date" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
+                        <p class="text-[11px] text-gray-400 mt-1">系統會在到期前 7、3、1 天提醒。</p>
+                    </div>
                     <div class="pt-1 space-y-2">
                         <div class="flex justify-start">
                             <button type="button" id="scanner-btn" class="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-800 text-xs font-bold px-4 py-3 rounded-2xl btn-press cursor-pointer">
@@ -319,6 +324,10 @@
                     <label class="block text-xs font-bold text-gray-500 mb-1">目前剩餘金額 (NT$)</label>
                     <input type="number" id="edit-balance" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">商品卡到期日（選填）</label>
+                    <input type="date" id="edit-expiry-date" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
+                </div>
                 <button type="submit" id="btn-submit-edit" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-emerald-600/30 btn-press mt-2 cursor-pointer">
                     確認儲存修改
                 </button>
@@ -338,6 +347,59 @@
 
         let currentFilter = 'all';
         let currentSort = 'balance-asc';
+        let expiryReminderTimer = null;
+
+        function localDateKey(date = new Date()) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function daysUntilExpiry(expiryDate) {
+            if (!expiryDate) return null;
+            const parts = String(expiryDate).slice(0, 10).split('-').map(Number);
+            if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+            const expiry = new Date(parts[0], parts[1] - 1, parts[2]);
+            const todayParts = localDateKey().split('-').map(Number);
+            const today = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]);
+            return Math.round((expiry - today) / 86400000);
+        }
+
+        function expiryLabel(expiryDate) {
+            const days = daysUntilExpiry(expiryDate);
+            if (days === null) return '';
+            if (days < 0) return `<span class="inline-flex items-center bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-full">已過期 ${Math.abs(days)} 天</span>`;
+            if (days === 0) return `<span class="inline-flex items-center bg-red-100 text-red-700 text-[10px] font-bold px-2 py-1 rounded-full">今天到期</span>`;
+            if (days <= 7) return `<span class="inline-flex items-center bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-1 rounded-full">剩 ${days} 天到期</span>`;
+            return `<span class="inline-flex items-center bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-full">到期日 ${String(expiryDate).slice(0,10)}</span>`;
+        }
+
+        function checkExpiryReminders() {
+            const todayKey = localDateKey();
+            const notified = JSON.parse(localStorage.getItem('seven_wallet_expiry_notified') || '{}');
+            const due = [];
+            cardsData.forEach(card => {
+                const days = daysUntilExpiry(card.expiry_date);
+                if ([7, 3, 1].includes(days)) {
+                    const key = `${card.id}_${days}_${todayKey}`;
+                    if (!notified[key]) {
+                        due.push(`${card.name}：${days} 天後到期（${String(card.expiry_date).slice(0,10)}）`);
+                        notified[key] = true;
+                    }
+                } else if (days === 0) {
+                    const key = `${card.id}_0_${todayKey}`;
+                    if (!notified[key]) {
+                        due.push(`${card.name}：今天到期`);
+                        notified[key] = true;
+                    }
+                }
+            });
+            localStorage.setItem('seven_wallet_expiry_notified', JSON.stringify(notified));
+            if (due.length) {
+                setTimeout(() => alert('⏰ 商品卡到期提醒\n\n' + due.join('\n')), 700);
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             const pinInput = document.getElementById('pin-input');
@@ -374,6 +436,11 @@
             document.getElementById('card-form').addEventListener('submit', saveCard);
             document.getElementById('edit-form').addEventListener('submit', updateCard);
             document.getElementById('scanner-btn').addEventListener('click', toggleScanner);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !document.getElementById('barcode-modal').classList.contains('hidden')) {
+                    closeBarcodeModal();
+                }
+            });
 
             document.addEventListener('visibilitychange', async () => {
                 if (wakeLock !== null && document.visibilityState === 'visible') {
@@ -509,7 +576,12 @@
         function showBarcode(cardNumber, cardName, balance) {
             document.getElementById('modal-card-name').innerText = cardName;
             document.getElementById('modal-card-balance').innerText = `剩餘金額：NT$ ${balance}`;
-            document.getElementById('barcode-modal').classList.remove('hidden');
+            const modal = document.getElementById('barcode-modal');
+            modal.classList.remove('hidden');
+            // Android/桌面瀏覽器支援時嘗試切換真正全螢幕；iOS Safari 以全畫面固定遮罩呈現。
+            if (modal.requestFullscreen && !document.fullscreenElement) {
+                modal.requestFullscreen().catch(() => {});
+            }
 
             requestWakeLock();
 
@@ -533,6 +605,9 @@
 
         async function closeBarcodeModal() {
             document.getElementById('barcode-modal').classList.add('hidden');
+            if (document.fullscreenElement && document.exitFullscreen) {
+                try { await document.exitFullscreen(); } catch (err) {}
+            }
             await releaseWakeLock();
         }
 
@@ -650,6 +725,7 @@
                 updateStats();
                 renderDenominationStats();
                 renderCards();
+                checkExpiryReminders();
                 document.getElementById('sync-text').innerText = '同步中';
                 document.getElementById('sync-dot').className = 'w-2 h-2 rounded-full bg-green-300 animate-pulse';
             } catch (err) {
@@ -798,7 +874,20 @@
                 const isDepleted = Number(card.balance) <= 0;
 
                 const cardEl = document.createElement('div');
-                cardEl.className = `bg-white p-5 rounded-3xl shadow-md shadow-gray-200/40 border transition-all duration-200 ${isDepleted ? 'opacity-60 border-gray-200 bg-gray-50/50' : 'border-emerald-100/60'}`;
+                cardEl.className = `bg-white p-5 rounded-3xl shadow-md shadow-gray-200/40 border transition-all duration-200 cursor-pointer active:scale-[0.99] ${isDepleted ? 'opacity-60 border-gray-200 bg-gray-50/50' : 'border-emerald-100/60'}`;
+                cardEl.setAttribute('role', 'button');
+                cardEl.setAttribute('tabindex', '0');
+                cardEl.setAttribute('aria-label', `${card.name}，點擊開啟全螢幕結帳條碼`);
+                cardEl.addEventListener('click', (event) => {
+                    if (event.target.closest('button')) return;
+                    showBarcode(card.card_number, card.name, card.balance);
+                });
+                cardEl.addEventListener('keydown', (event) => {
+                    if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('button')) {
+                        event.preventDefault();
+                        showBarcode(card.card_number, card.name, card.balance);
+                    }
+                });
                 cardEl.innerHTML = `
                     <div class="flex justify-between items-start mb-3">
                         <div>
@@ -809,6 +898,7 @@
                                 </button>
                             </div>
                             <p class="text-xs font-mono text-gray-400 mt-0.5">卡號: ${card.card_number}</p>
+                            ${card.expiry_date ? `<div class="mt-2">${expiryLabel(card.expiry_date)}</div>` : ''}
                         </div>
                         <div class="text-right">
                             <span class="text-xl font-black ${isDepleted ? 'text-gray-400' : 'text-emerald-700'}">NT$ ${card.balance}</span>
@@ -822,7 +912,7 @@
                         <button type="button" onclick="executeDeduct('${card.id}', ${card.balance})" class="flex-[1] bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-2xl text-xs font-bold btn-press transition flex items-center justify-center cursor-pointer">
                             扣款
                         </button>
-                        <button type="button" onclick="openEditModal('${card.id}', '${card.name}', '${card.card_number}', ${card.initial_amount}, ${card.balance})" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-emerald-700 rounded-2xl transition flex items-center justify-center text-xs btn-press cursor-pointer shadow-sm" title="修改">
+                        <button type="button" onclick="openEditModal('${card.id}', '${card.name}', '${card.card_number}', ${card.initial_amount}, ${card.balance}, '${card.expiry_date || ''}')" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-emerald-700 rounded-2xl transition flex items-center justify-center text-xs btn-press cursor-pointer shadow-sm" title="修改">
                             ✏️
                         </button>
                         <button type="button" onclick="moveToTrash('${card.id}', 'delete')" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-red-500 rounded-2xl transition flex items-center justify-center text-xs btn-press cursor-pointer shadow-sm" title="刪除">
@@ -852,6 +942,7 @@
             const match = name.match(/\d+/);
             const initial_amount = match ? Number(match[0]) : 35;
             const balance = Number(document.getElementById('input-balance').value);
+            const expiry_date = document.getElementById('input-expiry-date').value || null;
 
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/seven_cards`, {
@@ -861,7 +952,7 @@
                         'Content-Type': 'application/json',
                         'Prefer': 'return=minimal'
                     },
-                    body: JSON.stringify({ name, card_number, initial_amount, balance })
+                    body: JSON.stringify({ name, card_number, initial_amount, balance, expiry_date })
                 });
 
                 if (!response.ok) {
@@ -886,11 +977,12 @@
             }
         }
 
-        function openEditModal(id, name, cardNumber, initialAmount, balance) {
+        function openEditModal(id, name, cardNumber, initialAmount, balance, expiryDate = '') {
             document.getElementById('edit-id').value = id;
             document.getElementById('edit-name').value = name;
             document.getElementById('edit-number').value = cardNumber;
             document.getElementById('edit-balance').value = balance;
+            document.getElementById('edit-expiry-date').value = expiryDate || '';
             document.getElementById('edit-modal').classList.remove('hidden');
         }
 
@@ -906,6 +998,7 @@
             const match = name.match(/\d+/);
             const initial_amount = match ? Number(match[0]) : 35;
             const balance = Number(document.getElementById('edit-balance').value);
+            const expiry_date = document.getElementById('edit-expiry-date').value || null;
 
             const btn = document.getElementById('btn-submit-edit');
             btn.disabled = true;
@@ -919,7 +1012,7 @@
                         'Content-Type': 'application/json',
                         'Prefer': 'return=minimal'
                     },
-                    body: JSON.stringify({ name, card_number, initial_amount, balance })
+                    body: JSON.stringify({ name, card_number, initial_amount, balance, expiry_date })
                 });
 
                 if (!response.ok) throw new Error('修改更新失敗');
@@ -998,7 +1091,8 @@
                         name: card.name,
                         card_number: card.card_number,
                         initial_amount: card.initial_amount,
-                        balance: card.balance
+                        balance: card.balance,
+                        expiry_date: card.expiry_date || null
                     })
                 });
 
