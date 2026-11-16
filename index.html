@@ -157,7 +157,7 @@
             <!-- 🔐 結帳安全解鎖密碼設定 -->
             <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
                 <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🔐</span> 結帳安全驗證密碼</h3>
-                <p class="text-xs text-gray-400">變更密碼時需先驗證（若忘記密碼可輸入預設 711 進行重設）</p>
+                <p class="text-xs text-gray-400">變更密碼時需先驗證（若忘記密碼可輸入預設密碼進行重設）</p>
                 <form id="password-form" class="space-y-3">
                     <div>
                         <label class="block text-[11px] font-bold text-gray-500 mb-1">請輸入目前舊密碼</label>
@@ -817,7 +817,6 @@
             }
         }
 
-        // 🗑️ 移至回收筒（source 分為 'empty' 空卡歸零 或 'delete' 手動刪除）
         async function moveToTrash(id, source = 'delete') {
             const cardToMove = cardsData.find(c => c.id == id);
             if (!cardToMove) return;
@@ -830,7 +829,7 @@
 
                 if (!response.ok) throw new Error('刪除失敗');
 
-                cardToMove.trash_source = source; // 記錄來源標籤
+                cardToMove.trash_source = source;
                 trashData.unshift(cardToMove);
                 if (trashData.length > 20) trashData.pop();
                 localStorage.setItem('seven_cards_trash', JSON.stringify(trashData));
