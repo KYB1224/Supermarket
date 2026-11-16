@@ -13,22 +13,24 @@
     <style>
         body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
         #barcode-canvas { width: 100%; max-width: 100%; height: auto; }
-        .nav-item { transition: all 0.2s ease; }
+        .nav-item { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .nav-item.active { transform: translateY(-2px); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .btn-press { transition: all 0.15s ease; }
+        .btn-press:active { transform: scale(0.97); }
     </style>
 </head>
 <body class="bg-gradient-to-br from-emerald-50 via-gray-50 to-emerald-50 text-gray-800 min-h-screen pb-36">
 
     <!-- 頂部質感標題列 -->
-    <header class="bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-600 text-white px-4 py-3.5 shadow-lg sticky top-0 z-30">
+    <header class="bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-600 text-white px-4 py-3.5 shadow-md sticky top-0 z-30">
         <div class="max-w-md mx-auto flex items-center justify-between">
             <h1 class="text-lg font-black tracking-wider flex items-center gap-2">
-                <span class="bg-white text-emerald-700 px-2 py-0.5 rounded-lg text-xs shadow-sm font-black tracking-tighter">7-ELEVEN</span> 
+                <span class="bg-white text-emerald-700 px-2.5 py-0.5 rounded-xl text-xs shadow-sm font-black tracking-tighter">7-ELEVEN</span> 
                 <span id="header-title">商品卡列表</span>
             </h1>
-            <span id="sync-badge" class="text-[11px] text-emerald-50 flex items-center gap-1.5 font-medium bg-black/15 px-2.5 py-1 rounded-full">
+            <span id="sync-badge" class="text-[11px] text-emerald-50 flex items-center gap-1.5 font-medium bg-black/15 px-3 py-1 rounded-full shadow-inner">
                 <span id="sync-dot" class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
                 <span id="sync-text">同步中</span>
             </span>
@@ -38,29 +40,29 @@
     <main class="max-w-md mx-auto p-4 space-y-4 relative z-10">
         <!-- 分頁 1：商品卡列表頁 -->
         <div id="page-list" class="space-y-3.5">
-            <div class="bg-white/90 backdrop-blur-md p-3.5 rounded-3xl shadow-sm border border-emerald-100/80 space-y-2.5">
+            <div class="bg-white/95 backdrop-blur-md p-3.5 rounded-3xl shadow-sm border border-emerald-100/60 space-y-2.5">
                 <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-1 text-xs font-bold" id="filter-chips">
-                    <button type="button" onclick="setFilter('all', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-emerald-600 text-white shadow-sm shrink-0 transition cursor-pointer">全部</button>
-                    <button type="button" onclick="setFilter('20', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">20元</button>
-                    <button type="button" onclick="setFilter('25', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">25元</button>
-                    <button type="button" onclick="setFilter('35', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">35元</button>
-                    <button type="button" onclick="setFilter('50', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">50元</button>
-                    <button type="button" onclick="setFilter('100', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">100元</button>
-                    <button type="button" onclick="setFilter('200', this)" class="filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">200元</button>
+                    <button type="button" onclick="setFilter('all', this)" class="filter-btn px-3.5 py-1.5 rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 shrink-0 transition cursor-pointer">全部</button>
+                    <button type="button" onclick="setFilter('20', this)" class="filter-btn px-3.5 py-1.5 rounded-2xl bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">20元</button>
+                    <button type="button" onclick="setFilter('25', this)" class="filter-btn px-3.5 py-1.5 rounded-2xl bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">25元</button>
+                    <button type="button" onclick="setFilter('35', this)" class="filter-btn px-3.5 py-1.5 rounded-2xl bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">35元</button>
+                    <button type="button" onclick="setFilter('50', this)" class="filter-btn px-3.5 py-1.5 rounded-2xl bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">50元</button>
+                    <button type="button" onclick="setFilter('100', this)" class="filter-btn px-3.5 py-1.5 rounded-2xl bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">100元</button>
+                    <button type="button" onclick="setFilter('200', this)" class="filter-btn px-3.5 py-1.5 rounded-2xl bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200">200元</button>
                 </div>
 
                 <div class="flex items-center justify-between pt-2 border-t border-gray-100 text-xs">
                     <span class="text-gray-400 font-bold text-[11px] pl-1">排序</span>
                     <div class="flex gap-1.5" id="sort-chips">
-                        <button type="button" onclick="setSort('balance-desc', this)" class="sort-btn px-3 py-1 rounded-xl bg-transparent text-gray-500 font-bold transition cursor-pointer hover:bg-gray-100">金額高 ➔ 低</button>
-                        <button type="button" onclick="setSort('balance-asc', this)" class="sort-btn px-3 py-1 rounded-xl bg-emerald-50 text-emerald-700 font-bold transition cursor-pointer">金額低 ➔ 高</button>
-                        <button type="button" onclick="setSort('newest', this)" class="sort-btn px-3 py-1 rounded-xl bg-transparent text-gray-500 font-bold transition cursor-pointer hover:bg-gray-100">最新新增</button>
+                        <button type="button" onclick="setSort('balance-desc', this)" class="sort-btn px-3 py-1.5 rounded-xl bg-transparent text-gray-500 font-bold transition cursor-pointer hover:bg-gray-100">金額高 ➔ 低</button>
+                        <button type="button" onclick="setSort('balance-asc', this)" class="sort-btn px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 font-bold shadow-sm transition cursor-pointer">金額低 ➔ 高</button>
+                        <button type="button" onclick="setSort('newest', this)" class="sort-btn px-3 py-1.5 rounded-xl bg-transparent text-gray-500 font-bold transition cursor-pointer hover:bg-gray-100">最新新增</button>
                     </div>
                 </div>
             </div>
 
             <div id="card-list" class="space-y-3.5">
-                <div class="text-center py-16 text-gray-400 text-sm bg-white/80 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-2">
+                <div class="text-center py-16 text-gray-400 text-sm bg-white/90 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-2">
                     <div class="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
                     正在連接資料庫...
                 </div>
@@ -69,29 +71,29 @@
 
         <!-- 分頁 2：新增卡片頁 -->
         <div id="page-add" class="hidden space-y-4">
-            <div class="bg-white rounded-3xl p-5 shadow-sm border border-emerald-100 space-y-4">
+            <div class="bg-white rounded-3xl p-5 shadow-md shadow-gray-200/50 border border-emerald-100/60 space-y-4">
                 <div class="border-b border-gray-100 pb-3">
                     <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>✨</span> 新增商品卡</h3>
                     <p class="text-xs text-gray-400 mt-0.5">系統會自動檢查條碼是否重複</p>
                 </div>
 
-                <div class="bg-emerald-50 border border-emerald-100 p-3.5 rounded-2xl space-y-2.5">
+                <div class="bg-emerald-50/70 border border-emerald-100 p-3.5 rounded-2xl space-y-2.5">
                     <div class="flex justify-between items-center">
                         <div>
                             <p class="text-xs font-bold text-emerald-900">📷 即時掃描條碼</p>
                             <p class="text-[11px] text-emerald-700 mt-0.5">對準背面條碼即自動帶入</p>
                         </div>
-                        <button type="button" id="scanner-btn" class="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow active:scale-95 transition cursor-pointer">
+                        <button type="button" id="scanner-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-md shadow-emerald-600/30 btn-press cursor-pointer">
                             開啟鏡頭掃描
                         </button>
                     </div>
-                    <div id="reader" class="hidden overflow-hidden rounded-xl border border-emerald-200 bg-black"></div>
+                    <div id="reader" class="hidden overflow-hidden rounded-2xl border border-emerald-200 bg-black"></div>
                 </div>
 
                 <form id="card-form" class="space-y-3.5">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">卡片名稱 (面額)</label>
-                        <select id="input-name" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer">
+                        <select id="input-name" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer shadow-inner">
                             <option value="20元商品卡">20元商品卡</option>
                             <option value="25元商品卡">25元商品卡</option>
                             <option value="35元商品卡" selected>35元商品卡</option>
@@ -102,12 +104,12 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">卡號 (背後一維條碼數字)</label>
-                        <input type="text" id="input-number" inputmode="numeric" required placeholder="例如：7100016749202695" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:bg-white transition">
+                        <input type="text" id="input-number" inputmode="numeric" required placeholder="例如：7100016749202695" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-1">原始面額 (NT$)</label>
-                            <select id="input-initial" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer">
+                            <select id="input-initial" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer shadow-inner">
                                 <option value="20">20</option>
                                 <option value="25">25</option>
                                 <option value="35" selected>35</option>
@@ -118,10 +120,10 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-1">目前剩餘金額 (NT$)</label>
-                            <input type="number" id="input-balance" required value="35" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition">
+                            <input type="number" id="input-balance" required value="35" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
                         </div>
                     </div>
-                    <button type="submit" id="btn-submit-card" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-emerald-600/30 active:scale-98 transition mt-2 cursor-pointer">
+                    <button type="submit" id="btn-submit-card" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-emerald-600/30 btn-press mt-2 cursor-pointer">
                         確認儲存卡片
                     </button>
                 </form>
@@ -131,19 +133,19 @@
         <!-- 分頁 3：設定頁 -->
         <div id="page-settings" class="hidden space-y-4">
             <!-- 📊 總金額與卡數統計面板 -->
-            <div class="bg-gradient-to-br from-emerald-600 to-teal-600 text-white rounded-3xl p-5 shadow-lg shadow-emerald-600/20 flex justify-between items-center">
+            <div class="bg-gradient-to-br from-emerald-600 to-teal-600 text-white rounded-3xl p-5 shadow-xl shadow-emerald-600/25 flex justify-between items-center border border-emerald-500/30">
                 <div>
                     <p class="text-xs text-emerald-100 font-medium">總剩餘資產</p>
                     <h2 id="stats-total-balance" class="text-3xl font-black tracking-tight mt-0.5">NT$ 0</h2>
                 </div>
-                <div class="text-right bg-white/15 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/20">
+                <div class="text-right bg-white/15 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/20 shadow-inner">
                     <p class="text-[11px] text-emerald-100 font-medium">可用卡片</p>
                     <p id="stats-total-count" class="text-lg font-black mt-0.5">0 張</p>
                 </div>
             </div>
 
             <!-- 🗑️ 刪除卡片暫存區 (資源回收筒) -->
-            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
+            <div class="bg-white rounded-3xl p-5 shadow-md shadow-gray-200/50 border border-emerald-100/60 space-y-3">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🗑️</span> 已刪除卡片暫存區</h3>
                     <button type="button" onclick="clearTrash()" class="text-xs text-red-500 font-bold hover:underline cursor-pointer">清空回收筒</button>
@@ -154,36 +156,62 @@
                 </div>
             </div>
 
+            <!-- 📈 面額與使用統計區塊 -->
+            <div class="bg-white rounded-3xl p-5 shadow-md shadow-gray-200/50 border border-emerald-100/60 space-y-3">
+                <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>📊</span> 累積面額統計分析</h3>
+                <p class="text-xs text-gray-400">各面額累積使用與持有情形統計。</p>
+                
+                <div class="overflow-x-auto pt-1">
+                    <table class="w-full text-xs text-left">
+                        <thead>
+                            <tr class="border-b border-gray-200 text-gray-400 font-bold">
+                                <th class="pb-2 pl-1">面額種類</th>
+                                <th class="pb-2 text-center">張數</th>
+                                <th class="pb-2 text-right pr-1">小計金額</th>
+                            </tr>
+                        </thead>
+                        <tbody id="denomination-stats-list" class="divide-y divide-gray-100">
+                            <tr><td colspan="3" class="text-center py-4 text-gray-400">計算中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="denomination-stats-footer" class="pt-3 border-t border-gray-100 flex justify-between items-center text-xs font-bold text-gray-800 px-1">
+                    <span>總共 0 張卡</span>
+                    <span class="text-emerald-700 text-sm">總金額 NT$ 0</span>
+                </div>
+            </div>
+
             <!-- 🔐 結帳安全解鎖密碼設定 -->
-            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
+            <div class="bg-white rounded-3xl p-5 shadow-md shadow-gray-200/50 border border-emerald-100/60 space-y-3">
                 <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🔐</span> 結帳安全驗證密碼</h3>
                 <p class="text-xs text-gray-400">（變更時需輸入舊密碼驗證）</p>
                 <form id="password-form" class="space-y-3">
                     <div>
                         <label class="block text-[11px] font-bold text-gray-500 mb-1">請輸入目前舊密碼</label>
-                        <input type="password" id="old-password" inputmode="numeric" placeholder="目前密碼" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-3.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:bg-white transition">
+                        <input type="password" id="old-password" inputmode="numeric" placeholder="目前密碼" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-3.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-gray-500 mb-1">請輸入新密碼</label>
-                        <input type="password" id="new-password" inputmode="numeric" placeholder="新密碼" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-3.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:bg-white transition">
+                        <input type="password" id="new-password" inputmode="numeric" placeholder="新密碼" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-3.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
                     </div>
-                    <button type="submit" class="w-full bg-gray-900 text-white font-bold py-3 rounded-2xl text-xs active:scale-98 transition cursor-pointer">
+                    <button type="submit" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-2xl text-xs shadow-md btn-press cursor-pointer">
                         確認更新驗證密碼
                     </button>
                 </form>
             </div>
 
             <!-- 系統資訊 -->
-            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-2">
+            <div class="bg-white rounded-3xl p-5 shadow-md shadow-gray-200/50 border border-emerald-100/60 space-y-2">
                 <h3 class="font-bold text-base text-gray-800">⚙️ 系統資訊</h3>
-                <p class="text-xs text-gray-500">資料庫連線正常，支援雙人即時同步與結帳安全防護。</p>
+                <p class="text-xs text-gray-500">資料庫連線正常，支援雙人即時同步與安全防護。</p>
             </div>
         </div>
     </main>
 
     <!-- 🔒 啟動時即全域驗證的嚴格安全 Modal -->
     <div id="pin-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4 border border-emerald-100">
             <div class="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-inner">
                 🔒
             </div>
@@ -191,7 +219,7 @@
                 <h3 class="font-black text-lg text-gray-900">安全驗證，請輸入解鎖密碼</h3>
                 <p class="text-xs text-gray-400 mt-1">進入錢包前需先通過安全驗證</p>
             </div>
-            <input type="password" id="pin-input" inputmode="numeric" placeholder="請輸入密碼" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 text-center text-lg font-mono tracking-widest focus:outline-none focus:border-emerald-600 focus:bg-white transition">
+            <input type="password" id="pin-input" inputmode="numeric" placeholder="請輸入密碼" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 text-center text-lg font-mono tracking-widest focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
             
             <div class="flex justify-end text-xs px-1">
                 <button type="button" onclick="forgotPassword()" class="text-emerald-700 font-bold hover:underline cursor-pointer">
@@ -199,7 +227,7 @@
                 </button>
             </div>
 
-            <button type="button" onclick="submitGlobalPin()" class="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-lg shadow-emerald-600/30 active:scale-98 transition cursor-pointer">
+            <button type="button" onclick="submitGlobalPin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl text-sm shadow-lg shadow-emerald-600/30 btn-press cursor-pointer">
                 確認解鎖進入
             </button>
         </div>
@@ -207,8 +235,8 @@
 
     <!-- 底部固定導覽列 -->
     <nav class="fixed bottom-4 left-4 right-4 z-30 max-w-md mx-auto">
-        <div class="bg-white/90 backdrop-blur-md border border-emerald-100/80 rounded-full py-2.5 px-6 shadow-xl flex justify-around items-center">
-            <button type="button" onclick="switchTab('list')" id="nav-list" class="nav-item active flex items-center justify-center w-12 h-10 rounded-full bg-emerald-600 text-white shadow-md cursor-pointer transition">
+        <div class="bg-white/95 backdrop-blur-md border border-emerald-100/80 rounded-full py-2.5 px-6 shadow-2xl flex justify-around items-center">
+            <button type="button" onclick="switchTab('list')" id="nav-list" class="nav-item active flex items-center justify-center w-12 h-10 rounded-full bg-emerald-600 text-white shadow-md shadow-emerald-600/30 btn-press cursor-pointer">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                     <rect x="2.5" y="4" width="1.5" height="16" rx="0.5"/>
                     <rect x="5" y="4" width="2.5" height="16" rx="0.5"/>
@@ -220,10 +248,10 @@
                     <rect x="21" y="4" width="1.5" height="16" rx="0.5"/>
                 </svg>
             </button>
-            <button type="button" onclick="switchTab('add')" id="nav-add" class="nav-item flex items-center justify-center w-12 h-10 rounded-full text-gray-400 hover:text-gray-600 text-xl cursor-pointer transition">
+            <button type="button" onclick="switchTab('add')" id="nav-add" class="nav-item flex items-center justify-center w-12 h-10 rounded-full text-gray-400 hover:text-gray-600 text-xl btn-press cursor-pointer">
                 ➕
             </button>
-            <button type="button" onclick="switchTab('settings')" id="nav-settings" class="nav-item flex items-center justify-center w-12 h-10 rounded-full text-gray-400 hover:text-gray-600 text-xl cursor-pointer transition">
+            <button type="button" onclick="switchTab('settings')" id="nav-settings" class="nav-item flex items-center justify-center w-12 h-10 rounded-full text-gray-400 hover:text-gray-600 text-xl btn-press cursor-pointer">
                 ⚙️
             </button>
         </div>
@@ -252,7 +280,7 @@
                 </div>
             </div>
 
-            <button type="button" id="btn-close-barcode-bottom" class="w-full bg-gray-900 text-white font-bold py-3.5 rounded-2xl text-sm active:scale-98 transition cursor-pointer">
+            <button type="button" id="btn-close-barcode-bottom" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-3.5 rounded-2xl text-sm btn-press cursor-pointer">
                 結帳完成，關閉條碼
             </button>
         </div>
@@ -270,7 +298,7 @@
                 <input type="hidden" id="edit-id">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">卡片名稱</label>
-                    <select id="edit-name" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer">
+                    <select id="edit-name" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer shadow-inner">
                         <option value="20元商品卡">20元商品卡</option>
                         <option value="25元商品卡">25元商品卡</option>
                         <option value="35元商品卡">35元商品卡</option>
@@ -281,19 +309,19 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">卡號</label>
-                    <input type="text" id="edit-number" inputmode="numeric" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:bg-white transition">
+                    <input type="text" id="edit-number" inputmode="numeric" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">原始面額 (NT$)</label>
-                        <input type="number" id="edit-initial" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition">
+                        <input type="number" id="edit-initial" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">目前剩餘金額 (NT$)</label>
-                        <input type="number" id="edit-balance" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition">
+                        <input type="number" id="edit-balance" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
                     </div>
                 </div>
-                <button type="submit" id="btn-submit-edit" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-emerald-600/30 active:scale-98 transition mt-2 cursor-pointer">
+                <button type="submit" id="btn-submit-edit" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-emerald-600/30 btn-press mt-2 cursor-pointer">
                     確認儲存修改
                 </button>
             </form>
@@ -357,7 +385,6 @@
             renderTrash();
         });
 
-        // 全域驗證密碼
         function submitGlobalPin() {
             const savedPassword = localStorage.getItem('seven_wallet_pwd') || '711';
             const inputVal = document.getElementById('pin-input').value;
@@ -371,7 +398,6 @@
             }
         }
 
-        // 安全的忘記密碼機制 (提示文字已簡化)
         function forgotPassword() {
             const securityCode = prompt('請輸入預設解鎖數字：');
             if (securityCode === null) return;
@@ -392,18 +418,18 @@
         function setFilter(val, btn) {
             currentFilter = val;
             document.querySelectorAll('.filter-btn').forEach(b => {
-                b.className = "filter-btn px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200";
+                b.className = "filter-btn px-3.5 py-1.5 rounded-2xl bg-gray-100 text-gray-600 shrink-0 transition cursor-pointer hover:bg-gray-200";
             });
-            btn.className = "filter-btn px-3.5 py-1.5 rounded-full bg-emerald-600 text-white shadow-sm shrink-0 transition cursor-pointer";
+            btn.className = "filter-btn px-3.5 py-1.5 rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 shrink-0 transition cursor-pointer";
             renderCards();
         }
 
         function setSort(val, btn) {
             currentSort = val;
             document.querySelectorAll('.sort-btn').forEach(b => {
-                b.className = "sort-btn px-3 py-1 rounded-xl bg-transparent text-gray-500 font-bold transition cursor-pointer hover:bg-gray-100";
+                b.className = "sort-btn px-3 py-1.5 rounded-xl bg-transparent text-gray-500 font-bold transition cursor-pointer hover:bg-gray-100";
             });
-            btn.className = "sort-btn px-3 py-1 rounded-xl bg-emerald-50 text-emerald-700 font-bold transition cursor-pointer";
+            btn.className = "sort-btn px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 font-bold shadow-sm transition cursor-pointer";
             renderCards();
         }
 
@@ -421,8 +447,8 @@
             pageAdd.classList.add('hidden');
             pageSettings.classList.add('hidden');
             
-            const inactiveClass = "nav-item flex items-center justify-center w-12 h-10 rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition";
-            const activeClass = "nav-item active flex items-center justify-center w-12 h-10 rounded-full bg-emerald-600 text-white shadow-md cursor-pointer transition";
+            const inactiveClass = "nav-item flex items-center justify-center w-12 h-10 rounded-full text-gray-400 hover:text-gray-600 btn-press cursor-pointer";
+            const activeClass = "nav-item active flex items-center justify-center w-12 h-10 rounded-full bg-emerald-600 text-white shadow-md shadow-emerald-600/30 btn-press cursor-pointer";
 
             navList.className = inactiveClass;
             navAdd.className = inactiveClass;
@@ -443,6 +469,7 @@
                 navSettings.className = activeClass;
                 stopScanner();
                 updateStats();
+                renderDenominationStats();
                 renderTrash();
             }
         }
@@ -592,9 +619,10 @@
 
                 cardsData = await response.json();
                 updateStats();
+                renderDenominationStats();
                 renderCards();
                 document.getElementById('sync-text').innerText = '同步中';
-                document.getElementById('sync-dot').className = 'w-2 h-2 rounded-full bg-emerald-300 animate-pulse';
+                document.getElementById('sync-dot').className = 'w-2 h-2 rounded-full bg-green-300 animate-pulse';
             } catch (err) {
                 console.error('API 讀取失敗:', err);
                 showError(err.name === 'AbortError' ? '連線逾時 (請檢查網路)' : err.message);
@@ -613,6 +641,55 @@
             document.getElementById('stats-total-count').innerText = `${availableCount} 張`;
         }
 
+        function renderDenominationStats() {
+            const tbody = document.getElementById('denomination-stats-list');
+            const footer = document.getElementById('denomination-stats-footer');
+
+            if (!cardsData || cardsData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-gray-400">目前沒有資料</td></tr>`;
+                footer.innerHTML = `<span>總共 0 張卡</span><span class="text-emerald-700 text-sm">總金額 NT$ 0</span>`;
+                return;
+            }
+
+            const stats = {};
+            let totalCount = 0;
+            let grandTotalAmount = 0;
+
+            cardsData.forEach(card => {
+                const initial = Number(card.initial_amount) || 0;
+                const balance = Number(card.balance) || 0;
+                
+                if (!stats[initial]) {
+                    stats[initial] = { count: 0, totalAmount: 0 };
+                }
+                stats[initial].count += 1;
+                stats[initial].totalAmount += balance;
+                
+                totalCount += 1;
+                grandTotalAmount += balance;
+            });
+
+            const sortedKeys = Object.keys(stats).map(Number).sort((a, b) => a - b);
+
+            tbody.innerHTML = '';
+            sortedKeys.forEach(denom => {
+                const item = stats[denom];
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50/50 transition";
+                tr.innerHTML = `
+                    <td class="py-2.5 pl-1 font-bold text-gray-700">${denom}元面額</td>
+                    <td class="py-2.5 text-center font-mono font-bold text-emerald-700">${item.count} 張</td>
+                    <td class="py-2.5 text-right pr-1 font-mono font-bold text-gray-800">$${item.totalAmount.toLocaleString()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            footer.innerHTML = `
+                <span class="font-bold text-gray-600">總共 ${totalCount} 張卡</span>
+                <span class="text-emerald-700 text-sm font-black">總金額 NT$ ${grandTotalAmount.toLocaleString()}</span>
+            `;
+        }
+
         function showError(msg) {
             document.getElementById('sync-text').innerText = '連線異常';
             document.getElementById('sync-dot').className = 'w-2 h-2 rounded-full bg-red-400';
@@ -629,7 +706,7 @@
 
             if (cardsData.length === 0) {
                 listEl.innerHTML = `
-                    <div class="text-center py-16 text-gray-400 text-sm bg-white/80 rounded-3xl border border-gray-100 shadow-sm space-y-2">
+                    <div class="text-center py-16 text-gray-400 text-sm bg-white/90 rounded-3xl border border-gray-100 shadow-sm space-y-2">
                         <div class="text-4xl">🏷️</div>
                         <p class="font-medium text-gray-600">目前沒有儲存的商品卡</p>
                         <p class="text-xs text-gray-400">點擊下方「➕」開始建立吧！</p>
@@ -655,7 +732,7 @@
 
             if (filtered.length === 0) {
                 listEl.innerHTML = `
-                    <div class="text-center py-12 text-gray-400 text-sm bg-white/80 rounded-3xl border border-gray-100 shadow-sm space-y-2">
+                    <div class="text-center py-12 text-gray-400 text-sm bg-white/90 rounded-3xl border border-gray-100 shadow-sm space-y-2">
                         <p class="font-medium text-gray-600">找不到符合此面額的商品卡</p>
                     </div>`;
                 return;
@@ -666,7 +743,7 @@
                 const isDepleted = Number(card.balance) <= 0;
 
                 const cardEl = document.createElement('div');
-                cardEl.className = `bg-white p-5 rounded-3xl shadow-sm border transition-all duration-200 ${isDepleted ? 'opacity-60 border-gray-200 bg-gray-50/50' : 'border-emerald-100/80'}`;
+                cardEl.className = `bg-white p-5 rounded-3xl shadow-md shadow-gray-200/40 border transition-all duration-200 ${isDepleted ? 'opacity-60 border-gray-200 bg-gray-50/50' : 'border-emerald-100/60'}`;
                 cardEl.innerHTML = `
                     <div class="flex justify-between items-start mb-3">
                         <div>
@@ -684,16 +761,16 @@
                         </div>
                     </div>
                     <div class="flex gap-2 pt-3 border-t border-gray-100/80 items-center">
-                        <button type="button" onclick="showBarcode('${card.card_number}', '${card.name}', ${card.balance})" class="flex-[1.6] bg-emerald-50 text-emerald-700 py-2.5 rounded-xl text-xs font-bold active:scale-95 transition flex items-center justify-center cursor-pointer shadow-sm">
+                        <button type="button" onclick="showBarcode('${card.card_number}', '${card.name}', ${card.balance})" class="flex-[1.6] bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-2.5 rounded-2xl text-xs font-bold btn-press transition flex items-center justify-center cursor-pointer shadow-sm">
                             顯示條碼
                         </button>
-                        <button type="button" onclick="executeDeduct('${card.id}', ${card.balance})" class="flex-[1] bg-gray-100 text-gray-700 py-2.5 rounded-xl text-xs font-bold active:scale-95 transition flex items-center justify-center cursor-pointer">
+                        <button type="button" onclick="executeDeduct('${card.id}', ${card.balance})" class="flex-[1] bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-2xl text-xs font-bold btn-press transition flex items-center justify-center cursor-pointer">
                             扣款
                         </button>
-                        <button type="button" onclick="openEditModal('${card.id}', '${card.name}', '${card.card_number}', ${card.initial_amount}, ${card.balance})" class="w-9 h-9 bg-gray-50 text-gray-500 hover:text-emerald-700 rounded-xl transition flex items-center justify-center text-xs cursor-pointer shadow-sm" title="修改">
+                        <button type="button" onclick="openEditModal('${card.id}', '${card.name}', '${card.card_number}', ${card.initial_amount}, ${card.balance})" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-emerald-700 rounded-2xl transition flex items-center justify-center text-xs btn-press cursor-pointer shadow-sm" title="修改">
                             ✏️
                         </button>
-                        <button type="button" onclick="moveToTrash('${card.id}', 'delete')" class="w-9 h-9 bg-gray-50 text-gray-400 hover:text-red-500 rounded-xl transition flex items-center justify-center text-xs cursor-pointer shadow-sm" title="刪除">
+                        <button type="button" onclick="moveToTrash('${card.id}', 'delete')" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-red-500 rounded-2xl transition flex items-center justify-center text-xs btn-press cursor-pointer shadow-sm" title="刪除">
                             🗑️
                         </button>
                     </div>
@@ -904,9 +981,9 @@
                             ${badgeHtml}
                             <span class="font-bold text-gray-800">${card.name} (剩餘 $${card.balance})</span>
                         </div>
-                        <p class="font-mono text-[11px] text-gray-400">卡號: ${card.card_number}</p>
+                        <p class="font-mono text-[11px] text-gray-400">卡片編號: ${card.card_number}</p>
                     </div>
-                    <button type="button" onclick="restoreCard(${index})" class="bg-emerald-100 text-emerald-800 font-bold px-3 py-1.5 rounded-xl cursor-pointer hover:bg-emerald-200 transition">
+                    <button type="button" onclick="restoreCard(${index})" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-3 py-1.5 rounded-xl btn-press cursor-pointer transition">
                         還原
                     </button>
                 `;
