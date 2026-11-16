@@ -89,13 +89,14 @@
                     <div class="flex justify-between items-center">
                         <div>
                             <p class="text-xs font-bold text-emerald-900">📷 即時掃描條碼</p>
-                            <p class="text-[11px] text-emerald-700 mt-0.5">對準背面條碼即自動帶入</p>
+                            <p class="text-[11px] text-emerald-700 mt-0.5">請讓背面數字條碼完整入框，辨識 16 位數字後自動帶入</p>
                         </div>
                         <button type="button" id="scanner-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-md shadow-emerald-600/30 btn-press cursor-pointer">
                             開啟鏡頭掃描
                         </button>
                     </div>
                     <div id="reader" class="hidden overflow-hidden rounded-2xl border border-emerald-200 bg-black"></div>
+                    <p id="scanner-status" class="hidden text-[11px] text-emerald-800 leading-relaxed" aria-live="polite">請將條碼保持水平，避免反光，距離約 10–20 公分。</p>
                 </div>
 
                 <form id="card-form" class="space-y-3.5">
@@ -325,6 +326,9 @@
         let trashData = JSON.parse(localStorage.getItem('seven_cards_trash') || '[]');
         let html5QrCode = null;
         let scannerIsRunning = false;
+        let scannerStarting = false;
+        let lastScanValue = '';
+        let lastScanAt = 0;
         let wakeLock = null;
 
         let currentFilter = 'all';
@@ -525,59 +529,113 @@
             await releaseWakeLock();
         }
 
+        // 7-ELEVEN 商品卡背面為數字型一維條碼；只接受預期的 16 位數字，
+        // 避免把其他條碼格式的誤判文字（例如英數亂碼）帶入卡號欄位。
+        function isValidGiftCardBarcode(value) {
+            return /^\d{16}$/.test(String(value || '').trim());
+        }
+
+        function scannerFeedback(message, isError = false) {
+            const status = document.getElementById('scanner-status');
+            status.textContent = message;
+            status.classList.remove('hidden', 'text-red-600', 'text-emerald-800');
+            status.classList.add(isError ? 'text-red-600' : 'text-emerald-800');
+        }
+
         async function toggleScanner() {
             const readerDiv = document.getElementById('reader');
             const btn = document.getElementById('scanner-btn');
-
-            if (scannerIsRunning) {
+            if (scannerIsRunning || scannerStarting) {
                 await stopScanner();
                 return;
             }
+            if (!window.Html5Qrcode) {
+                alert('掃描模組載入失敗，請確認網路連線後重新整理頁面。');
+                return;
+            }
 
+            scannerStarting = true;
             readerDiv.classList.remove('hidden');
-            btn.innerText = "關閉鏡頭";
-            scannerIsRunning = true;
+            document.getElementById('scanner-status').classList.remove('hidden');
+            btn.innerText = '正在開啟…';
+            btn.disabled = true;
+            scannerFeedback('正在啟動後鏡頭…請允許相機權限。');
 
             try {
                 if (!html5QrCode) {
-                    html5QrCode = new Html5Qrcode("reader", {
-                        formatsToSupport: [
-                            Html5QrcodeSupportedFormats.CODE_128,
-                            Html5QrcodeSupportedFormats.EAN_13,
-                            Html5QrcodeSupportedFormats.EAN_8,
-                            Html5QrcodeSupportedFormats.UPC_A,
-                            Html5QrcodeSupportedFormats.UPC_E,
-                            Html5QrcodeSupportedFormats.CODE_39,
-                            Html5QrcodeSupportedFormats.ITF
-                        ],
+                    html5QrCode = new Html5Qrcode('reader', {
+                        // 商品卡使用數字型 Code 128；縮小格式範圍可減少誤判及提升速度。
+                        formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128],
                         verbose: false
                     });
                 }
+
                 await html5QrCode.start(
-                    { facingMode: "environment" },
-                    { fps: 15, qrbox: { width: 280, height: 120 } },
-                    (decodedText) => {
-                        document.getElementById('input-number').value = decodedText;
-                        stopScanner();
+                    { facingMode: 'environment' },
+                    {
+                        fps: 18,
+                        qrbox: (viewWidth, viewHeight) => {
+                            // 掃描框盡量寬，方便完整涵蓋橫向一維條碼。
+                            const width = Math.floor(Math.min(viewWidth * 0.94, 520));
+                            const height = Math.floor(Math.min(Math.max(width * 0.34, 110), viewHeight * 0.48));
+                            return { width, height };
+                        },
+                        aspectRatio: 1.777,
+                        disableFlip: true,
+                        videoConstraints: {
+                            facingMode: { ideal: 'environment' },
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 },
+                            focusMode: 'continuous'
+                        }
                     },
-                    (errorMessage) => {}
+                    async (decodedText) => {
+                        const value = String(decodedText || '').trim();
+                        const now = Date.now();
+                        if (value === lastScanValue && now - lastScanAt < 1800) return;
+                        lastScanValue = value;
+                        lastScanAt = now;
+
+                        if (!isValidGiftCardBarcode(value)) {
+                            scannerFeedback('已讀取到其他內容，但不是有效的 16 位數字卡號。請讓條碼完整入框、保持水平並避開反光。', true);
+                            return;
+                        }
+
+                        document.getElementById('input-number').value = value;
+                        scannerFeedback('辨識成功！卡號已帶入，請核對後再儲存。');
+                        if (navigator.vibrate) navigator.vibrate(100);
+                        await stopScanner();
+                        document.getElementById('input-number').focus();
+                    },
+                    () => {}
                 );
+                scannerIsRunning = true;
+                scannerFeedback('掃描中：請將背面數字條碼完整放入畫面，保持手機穩定並避免燈光反射。');
+                btn.innerText = '關閉鏡頭';
             } catch (err) {
-                console.error("無法開啟相機", err);
-                alert("無法開啟相機，請檢查瀏覽器相機權限。");
-                stopScanner();
+                console.error('無法開啟相機', err);
+                scannerFeedback('相機啟動失敗，請確認 Safari／瀏覽器已允許相機權限，並使用 HTTPS 網址開啟。', true);
+                alert('無法開啟相機：請確認瀏覽器相機權限，並使用 HTTPS 網址開啟。');
+                if (html5QrCode) {
+                    try { await html5QrCode.stop(); } catch (_) {}
+                }
+                readerDiv.classList.add('hidden');
+            } finally {
+                scannerStarting = false;
+                btn.disabled = false;
+                if (!scannerIsRunning) btn.innerText = '開啟鏡頭掃描';
             }
         }
 
         async function stopScanner() {
-            if (html5QrCode && scannerIsRunning) {
-                try {
-                    await html5QrCode.stop();
-                } catch (e) {}
-                scannerIsRunning = false;
+            if (html5QrCode && (scannerIsRunning || scannerStarting)) {
+                try { await html5QrCode.stop(); } catch (e) {}
             }
+            scannerIsRunning = false;
+            scannerStarting = false;
             document.getElementById('reader').classList.add('hidden');
-            document.getElementById('scanner-btn').innerText = "開啟鏡頭掃描";
+            document.getElementById('scanner-btn').innerText = '開啟鏡頭掃描';
+            document.getElementById('scanner-btn').disabled = false;
         }
 
         async function fetchCards() {
@@ -770,6 +828,12 @@
         async function saveCard(e) {
             e.preventDefault();
             const card_number = document.getElementById('input-number').value.trim();
+
+            if (!isValidGiftCardBarcode(card_number)) {
+                alert('⚠️ 卡號格式不正確：請輸入背面一維條碼的 16 位數字，勿輸入英文字母或符號。');
+                document.getElementById('input-number').focus();
+                return;
+            }
 
             const isDuplicate = cardsData.some(card => card.card_number === card_number);
             if (isDuplicate) {
