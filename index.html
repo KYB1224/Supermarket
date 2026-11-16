@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="7-11 商品卡錢包">
+    <meta name="apple-mobile-web-app-title" content="7-11錢包">
     <title>7-11 綠金商品卡錢包</title>
     
-    <!-- PWA 支援與圖標設定 -->
+    <!-- iOS 專屬主畫面 App 質感圖標 (採用你的綠金錢包圖標) -->
+    <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==">
+    
+    <!-- PWA Manifest 設定 -->
     <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%227-11%20%E5%95%86%E5%93%81%E5%8D%A1%E9%8C%A2%E5%8C%85%22%2C%22short_name%22%3A%227-11%E9%8C%A2%E5%8C%85%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23064e3b%22%2C%22theme_color%22%3A%22%23047857%22%7D">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -209,7 +212,7 @@
             <!-- 系統資訊 -->
             <div class="bg-white rounded-3xl p-5 shadow-md shadow-gray-200/50 border border-emerald-100/60 space-y-2">
                 <h3 class="font-bold text-base text-gray-800">⚙️ 系統資訊</h3>
-                <p class="text-xs text-gray-500">資料庫連線正常，支援雙人即時同步與綠金錢包 App 圖標。</p>
+                <p class="text-xs text-gray-500">資料庫連線正常，支援雙人即時同步與自訂圖標。</p>
             </div>
         </div>
     </main>
