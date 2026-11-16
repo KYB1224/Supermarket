@@ -11,7 +11,7 @@
     <!-- iOS 專屬主畫面 App 質感圖標 -->
     <link rel="apple-touch-icon" href="icon.png">
     
-    <!-- PWA Manifest 設定 (更新名稱為 7-11商品卡) -->
+    <!-- PWA Manifest 設定 -->
     <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%227-11%E5%95%86%E5%93%81%E5%8D%A1%22%2C%22short_name%22%3A%227-11%E5%95%86%E5%93%81%E5%8D%A1%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23064e3b%22%2C%22theme_color%22%3A%22%23047857%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22icon.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2fpng%22%7D%5D%7D">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -88,15 +88,14 @@
                 <div class="bg-emerald-50/70 border border-emerald-100 p-3.5 rounded-2xl space-y-2.5">
                     <div class="flex justify-between items-center">
                         <div>
-                            <p class="text-xs font-bold text-emerald-900">📷 即時掃描條碼</p>
-                            <p class="text-[11px] text-emerald-700 mt-0.5">請讓背面數字條碼完整入框，辨識 16 位數字後自動帶入</p>
+                            <p class="text-xs font-bold text-emerald-900">📷 即時掃描一維條碼</p>
+                            <p class="text-[11px] text-emerald-700 mt-0.5">請對準背面下方長條狀條碼</p>
                         </div>
                         <button type="button" id="scanner-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-md shadow-emerald-600/30 btn-press cursor-pointer">
                             開啟鏡頭掃描
                         </button>
                     </div>
                     <div id="reader" class="hidden overflow-hidden rounded-2xl border border-emerald-200 bg-black"></div>
-                    <p id="scanner-status" class="hidden text-[11px] text-emerald-800 leading-relaxed" aria-live="polite">請將條碼保持水平，避免反光，距離約 10–20 公分。</p>
                 </div>
 
                 <form id="card-form" class="space-y-3.5">
@@ -155,15 +154,15 @@
             <!-- 📈 面額與使用統計區塊 -->
             <div class="bg-white rounded-3xl p-5 shadow-md shadow-gray-200/50 border border-emerald-100/60 space-y-3">
                 <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>📊</span> 累積面額統計分析</h3>
-                <p class="text-xs text-gray-400">各面額累積使用與持有情形統計。</p>
+                <p class="text-xs text-gray-400">各面額累積使用與持有情形統計（含歷史已刪除卡片）。</p>
                 
                 <div class="overflow-x-auto pt-1">
                     <table class="w-full text-xs text-left">
                         <thead>
                             <tr class="border-b border-gray-200 text-gray-400 font-bold">
                                 <th class="pb-2 pl-1">面額種類</th>
-                                <th class="pb-2 text-center">張數</th>
-                                <th class="pb-2 text-right pr-1">小計金額</th>
+                                <th class="pb-2 text-center">總張數</th>
+                                <th class="pb-2 text-right pr-1">歷史總面額小計</th>
                             </tr>
                         </thead>
                         <tbody id="denomination-stats-list" class="divide-y divide-gray-100">
@@ -174,7 +173,7 @@
 
                 <div id="denomination-stats-footer" class="pt-3 border-t border-gray-100 flex justify-between items-center text-xs font-bold text-gray-800 px-1">
                     <span>總共 0 張卡</span>
-                    <span class="text-emerald-700 text-sm">總金額 NT$ 0</span>
+                    <span class="text-emerald-700 text-sm">歷史總金額 NT$ 0</span>
                 </div>
             </div>
 
@@ -326,9 +325,6 @@
         let trashData = JSON.parse(localStorage.getItem('seven_cards_trash') || '[]');
         let html5QrCode = null;
         let scannerIsRunning = false;
-        let scannerStarting = false;
-        let lastScanValue = '';
-        let lastScanAt = 0;
         let wakeLock = null;
 
         let currentFilter = 'all';
@@ -529,113 +525,57 @@
             await releaseWakeLock();
         }
 
-        // 7-ELEVEN 商品卡背面為數字型一維條碼；只接受預期的 16 位數字，
-        // 避免把其他條碼格式的誤判文字（例如英數亂碼）帶入卡號欄位。
-        function isValidGiftCardBarcode(value) {
-            return /^\d{16}$/.test(String(value || '').trim());
-        }
-
-        function scannerFeedback(message, isError = false) {
-            const status = document.getElementById('scanner-status');
-            status.textContent = message;
-            status.classList.remove('hidden', 'text-red-600', 'text-emerald-800');
-            status.classList.add(isError ? 'text-red-600' : 'text-emerald-800');
-        }
-
         async function toggleScanner() {
             const readerDiv = document.getElementById('reader');
             const btn = document.getElementById('scanner-btn');
-            if (scannerIsRunning || scannerStarting) {
+
+            if (scannerIsRunning) {
                 await stopScanner();
                 return;
             }
-            if (!window.Html5Qrcode) {
-                alert('掃描模組載入失敗，請確認網路連線後重新整理頁面。');
-                return;
-            }
 
-            scannerStarting = true;
             readerDiv.classList.remove('hidden');
-            document.getElementById('scanner-status').classList.remove('hidden');
-            btn.innerText = '正在開啟…';
-            btn.disabled = true;
-            scannerFeedback('正在啟動後鏡頭…請允許相機權限。');
+            btn.innerText = "關閉鏡頭";
+            scannerIsRunning = true;
 
             try {
                 if (!html5QrCode) {
-                    html5QrCode = new Html5Qrcode('reader', {
-                        // 商品卡使用數字型 Code 128；縮小格式範圍可減少誤判及提升速度。
-                        formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128],
+                    html5QrCode = new Html5Qrcode("reader", {
+                        formatsToSupport: [
+                            Html5QrcodeSupportedFormats.CODE_128,
+                            Html5QrcodeSupportedFormats.EAN_13,
+                            Html5QrcodeSupportedFormats.CODE_39
+                        ],
                         verbose: false
                     });
                 }
-
                 await html5QrCode.start(
-                    { facingMode: 'environment' },
-                    {
-                        fps: 18,
-                        qrbox: (viewWidth, viewHeight) => {
-                            // 掃描框盡量寬，方便完整涵蓋橫向一維條碼。
-                            const width = Math.floor(Math.min(viewWidth * 0.94, 520));
-                            const height = Math.floor(Math.min(Math.max(width * 0.34, 110), viewHeight * 0.48));
-                            return { width, height };
-                        },
-                        aspectRatio: 1.777,
-                        disableFlip: true,
-                        videoConstraints: {
-                            facingMode: { ideal: 'environment' },
-                            width: { ideal: 1920 },
-                            height: { ideal: 1080 },
-                            focusMode: 'continuous'
+                    { facingMode: "environment" },
+                    { fps: 20, qrbox: { width: 300, height: 100 } },
+                    (decodedText) => {
+                        if (/^\d{10,20}$/.test(decodedText)) {
+                            document.getElementById('input-number').value = decodedText;
+                            stopScanner();
                         }
                     },
-                    async (decodedText) => {
-                        const value = String(decodedText || '').trim();
-                        const now = Date.now();
-                        if (value === lastScanValue && now - lastScanAt < 1800) return;
-                        lastScanValue = value;
-                        lastScanAt = now;
-
-                        if (!isValidGiftCardBarcode(value)) {
-                            scannerFeedback('已讀取到其他內容，但不是有效的 16 位數字卡號。請讓條碼完整入框、保持水平並避開反光。', true);
-                            return;
-                        }
-
-                        document.getElementById('input-number').value = value;
-                        scannerFeedback('辨識成功！卡號已帶入，請核對後再儲存。');
-                        if (navigator.vibrate) navigator.vibrate(100);
-                        await stopScanner();
-                        document.getElementById('input-number').focus();
-                    },
-                    () => {}
+                    (errorMessage) => {}
                 );
-                scannerIsRunning = true;
-                scannerFeedback('掃描中：請將背面數字條碼完整放入畫面，保持手機穩定並避免燈光反射。');
-                btn.innerText = '關閉鏡頭';
             } catch (err) {
-                console.error('無法開啟相機', err);
-                scannerFeedback('相機啟動失敗，請確認 Safari／瀏覽器已允許相機權限，並使用 HTTPS 網址開啟。', true);
-                alert('無法開啟相機：請確認瀏覽器相機權限，並使用 HTTPS 網址開啟。');
-                if (html5QrCode) {
-                    try { await html5QrCode.stop(); } catch (_) {}
-                }
-                readerDiv.classList.add('hidden');
-            } finally {
-                scannerStarting = false;
-                btn.disabled = false;
-                if (!scannerIsRunning) btn.innerText = '開啟鏡頭掃描';
+                console.error("無法開啟相機", err);
+                alert("無法開啟相機，請檢查瀏覽器相機權限。");
+                stopScanner();
             }
         }
 
         async function stopScanner() {
-            if (html5QrCode && (scannerIsRunning || scannerStarting)) {
-                try { await html5QrCode.stop(); } catch (e) {}
+            if (html5QrCode && scannerIsRunning) {
+                try {
+                    await html5QrCode.stop();
+                } catch (e) {}
+                scannerIsRunning = false;
             }
-            scannerIsRunning = false;
-            scannerStarting = false;
             document.getElementById('reader').classList.add('hidden');
-            document.getElementById('scanner-btn').innerText = '開啟鏡頭掃描';
-            document.getElementById('scanner-btn').disabled = false;
+            document.getElementById('scanner-btn').innerText = "開啟鏡頭掃描";
         }
 
         async function fetchCards() {
@@ -687,13 +627,17 @@
             document.getElementById('stats-total-count').innerText = `${availableCount} 張`;
         }
 
+        // 🔥 改良版：結合「目前列表中的卡片」＋「回收筒中的歷史卡片」來計算總面額歷史統計，刪除後數據也不會消失！
         function renderDenominationStats() {
             const tbody = document.getElementById('denomination-stats-list');
             const footer = document.getElementById('denomination-stats-footer');
 
-            if (!cardsData || cardsData.length === 0) {
+            // 合併目前資料與回收筒暫存的歷史卡片資料
+            const allCombinedCards = [...cardsData, ...trashData];
+
+            if (!allCombinedCards || allCombinedCards.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-gray-400">目前沒有資料</td></tr>`;
-                footer.innerHTML = `<span>總共 0 張卡</span><span class="text-emerald-700 text-sm">總金額 NT$ 0</span>`;
+                footer.innerHTML = `<span>總共 0 張卡</span><span class="text-emerald-700 text-sm">歷史總金額 NT$ 0</span>`;
                 return;
             }
 
@@ -701,18 +645,17 @@
             let totalCount = 0;
             let grandTotalAmount = 0;
 
-            cardsData.forEach(card => {
+            allCombinedCards.forEach(card => {
                 const initial = Number(card.initial_amount) || 0;
-                const balance = Number(card.balance) || 0;
                 
                 if (!stats[initial]) {
                     stats[initial] = { count: 0, totalAmount: 0 };
                 }
                 stats[initial].count += 1;
-                stats[initial].totalAmount += balance;
+                stats[initial].totalAmount += initial; // 統計歷史總面額（以原始面額計算累計購買資產）
                 
                 totalCount += 1;
-                grandTotalAmount += balance;
+                grandTotalAmount += initial;
             });
 
             const sortedKeys = Object.keys(stats).map(Number).sort((a, b) => a - b);
@@ -731,8 +674,8 @@
             });
 
             footer.innerHTML = `
-                <span class="font-bold text-gray-600">總共 ${totalCount} 張卡</span>
-                <span class="text-emerald-700 text-sm font-black">總金額 NT$ ${grandTotalAmount.toLocaleString()}</span>
+                <span class="font-bold text-gray-600">歷史總共 ${totalCount} 張卡</span>
+                <span class="text-emerald-700 text-sm font-black">歷史總金額 NT$ ${grandTotalAmount.toLocaleString()}</span>
             `;
         }
 
@@ -828,12 +771,6 @@
         async function saveCard(e) {
             e.preventDefault();
             const card_number = document.getElementById('input-number').value.trim();
-
-            if (!isValidGiftCardBarcode(card_number)) {
-                alert('⚠️ 卡號格式不正確：請輸入背面一維條碼的 16 位數字，勿輸入英文字母或符號。');
-                document.getElementById('input-number').focus();
-                return;
-            }
 
             const isDuplicate = cardsData.some(card => card.card_number === card_number);
             if (isDuplicate) {
