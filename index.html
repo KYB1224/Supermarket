@@ -52,7 +52,12 @@
                 <span id="header-title">商品卡列表</span>
             </h1>
             <div class="flex items-center gap-2">
-                <button type="button" id="btn-refresh-wallet" onclick="refreshWallet()" aria-label="更新商品卡資料" title="立即更新" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white text-lg btn-press cursor-pointer" style="-webkit-tap-highlight-color: transparent;">↻</button>
+                <button type="button" id="btn-refresh-wallet" onclick="refreshWallet()" aria-label="更新商品卡資料" title="立即更新" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 shadow-sm flex items-center justify-center text-white btn-press cursor-pointer transition-all duration-200 active:scale-90" style="-webkit-tap-highlight-color: transparent;">
+                    <svg class="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M20 7.5V3.5M20 7.5H16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M19.1 11A7.25 7.25 0 1 0 19.25 14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                    </svg>
+                </button>
                 <span id="sync-badge" class="text-[11px] text-emerald-50 flex items-center gap-1.5 font-medium bg-black/15 px-3 py-1 rounded-full shadow-inner">
                 <span id="sync-dot" class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
                 <span id="sync-text">同步中</span>
@@ -813,10 +818,9 @@
             if (walletRefreshInProgress) return;
             walletRefreshInProgress = true;
             const btn = document.getElementById('btn-refresh-wallet');
-            const original = btn.innerHTML;
+            const refreshIcon = btn.querySelector('svg');
             btn.disabled = true;
-            btn.innerHTML = '⟳';
-            btn.classList.add('animate-spin');
+            if (refreshIcon) refreshIcon.classList.add('animate-spin');
             document.getElementById('sync-text').innerText = '更新中';
             try {
                 await fetchCards();
@@ -825,8 +829,7 @@
                 }
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = original;
-                btn.classList.remove('animate-spin');
+                if (refreshIcon) refreshIcon.classList.remove('animate-spin');
                 walletRefreshInProgress = false;
             }
         }
@@ -1155,11 +1158,6 @@
         async function moveToTrash(id, source = 'delete') {
             const cardToMove = cardsData.find(c => c.id == id);
             if (!cardToMove) return;
-            const confirmText = source === 'empty'
-                ? '確定將這張空卡移入刪除暫存區？'
-                : '確定將這張商品卡移入刪除暫存區？';
-            if (!confirm(confirmText)) return;
-
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/seven_cards?id=eq.${encodeURIComponent(id)}`, {
                     method: 'PATCH',
