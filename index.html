@@ -51,10 +51,13 @@
                 <span class="bg-white text-emerald-700 px-2.5 py-0.5 rounded-xl text-xs shadow-sm font-black tracking-tighter">7-ELEVEN</span> 
                 <span id="header-title">商品卡列表</span>
             </h1>
-            <span id="sync-badge" class="text-[11px] text-emerald-50 flex items-center gap-1.5 font-medium bg-black/15 px-3 py-1 rounded-full shadow-inner">
+            <div class="flex items-center gap-2">
+                <button type="button" id="btn-refresh-wallet" onclick="refreshWallet()" aria-label="更新商品卡資料" title="立即更新" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white text-lg btn-press cursor-pointer" style="-webkit-tap-highlight-color: transparent;">↻</button>
+                <span id="sync-badge" class="text-[11px] text-emerald-50 flex items-center gap-1.5 font-medium bg-black/15 px-3 py-1 rounded-full shadow-inner">
                 <span id="sync-dot" class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
                 <span id="sync-text">同步中</span>
-            </span>
+                </span>
+            </div>
         </div>
     </header>
 
@@ -159,7 +162,7 @@
                     <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🗑️</span> 已刪除卡片暫存區</h3>
                     <button type="button" onclick="clearTrash()" class="text-xs text-red-500 font-bold hover:underline cursor-pointer">清空回收筒</button>
                 </div>
-                <p class="text-xs text-gray-400">誤刪的卡片會暫存在這裡，隨時可以還原。</p>
+                <p class="text-xs text-gray-400">誤刪的卡片會保存在雲端暫存區，兩支手機同步顯示，隨時可以還原。</p>
                 <div id="trash-list" class="space-y-2.5 pt-1">
                     <p class="text-xs text-gray-400 text-center py-4">目前暫存區沒有卡片</p>
                 </div>
@@ -340,7 +343,7 @@
         const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_emdUXSReiJ1R2H1idbmDEA_btdE-Y6d';
 
         let cardsData = [];
-        let trashData = JSON.parse(localStorage.getItem('seven_cards_trash') || '[]');
+        let trashData = [];
         let html5QrCode = null;
         let scannerIsRunning = false;
         let wakeLock = null;
@@ -786,16 +789,45 @@
                     throw new Error(`HTTP ${response.status}: ${detail || '讀取失敗'}`);
                 }
 
-                cardsData = await response.json();
+                const allCards = await response.json();
+                // 雲端回收筒：deleted_at 有值代表移入暫存區
+                trashData = allCards.filter(card => !!card.deleted_at).sort((a, b) => new Date(b.deleted_at) - new Date(a.deleted_at));
+                cardsData = allCards.filter(card => !card.deleted_at);
                 updateStats();
-                renderDenominationStats();
                 renderCards();
+                renderTrash();
+                await renderDenominationStats();
                 checkExpiryReminders();
-                document.getElementById('sync-text').innerText = '同步中';
-                document.getElementById('sync-dot').className = 'w-2 h-2 rounded-full bg-green-300 animate-pulse';
+                document.getElementById('sync-text').innerText = '已同步';
+                document.getElementById('sync-dot').className = 'w-2 h-2 rounded-full bg-green-300';
             } catch (err) {
                 console.error('API 讀取失敗:', err);
+                document.getElementById('sync-text').innerText = '同步失敗';
+                document.getElementById('sync-dot').className = 'w-2 h-2 rounded-full bg-red-300';
                 showError(err.name === 'AbortError' ? '連線逾時 (請檢查網路)' : err.message);
+            }
+        }
+
+        let walletRefreshInProgress = false;
+        async function refreshWallet() {
+            if (walletRefreshInProgress) return;
+            walletRefreshInProgress = true;
+            const btn = document.getElementById('btn-refresh-wallet');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⟳';
+            btn.classList.add('animate-spin');
+            document.getElementById('sync-text').innerText = '更新中';
+            try {
+                await fetchCards();
+                if (document.getElementById('sync-text').innerText === '已同步') {
+                    // 更新完成，不額外跳出視窗，避免打斷結帳操作
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = original;
+                btn.classList.remove('animate-spin');
+                walletRefreshInProgress = false;
             }
         }
 
@@ -993,9 +1025,9 @@
             e.preventDefault();
             const card_number = document.getElementById('input-number').value.trim();
 
-            const isDuplicate = cardsData.some(card => card.card_number === card_number);
+            const isDuplicate = [...cardsData, ...trashData].some(card => String(card.card_number).trim() === card_number);
             if (isDuplicate) {
-                alert(`⚠️ 防呆攔截：此卡號 (${card_number}) 已經存在系統中了！請確認是否重複輸入。`);
+                alert(`⚠️ 防呆攔截：此卡號 (${card_number}) 已存在正常列表或刪除暫存區，不能重複新增。若要重新使用，請先到暫存區還原或永久刪除原卡片。`);
                 return;
             }
 
@@ -1123,50 +1155,43 @@
         async function moveToTrash(id, source = 'delete') {
             const cardToMove = cardsData.find(c => c.id == id);
             if (!cardToMove) return;
+            const confirmText = source === 'empty'
+                ? '確定將這張空卡移入刪除暫存區？'
+                : '確定將這張商品卡移入刪除暫存區？';
+            if (!confirm(confirmText)) return;
 
             try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/seven_cards?id=eq.${id}`, {
-                    method: 'DELETE',
-                    headers: { 'apikey': SUPABASE_PUBLISHABLE_KEY }
-                });
-
-                if (!response.ok) throw new Error('刪除失敗');
-
-                cardToMove.trash_source = source;
-                trashData.unshift(cardToMove);
-                localStorage.setItem('seven_cards_trash', JSON.stringify(trashData));
-
-                fetchCards();
-            } catch (err) {
-                alert(err.message);
-            }
-        }
-
-        async function restoreCard(index) {
-            const card = trashData[index];
-            try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/seven_cards`, {
-                    method: 'POST',
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/seven_cards?id=eq.${encodeURIComponent(id)}`, {
+                    method: 'PATCH',
                     headers: {
                         'apikey': SUPABASE_PUBLISHABLE_KEY,
                         'Content-Type': 'application/json',
                         'Prefer': 'return=minimal'
                     },
-                    body: JSON.stringify({
-                        name: card.name,
-                        card_number: card.card_number,
-                        initial_amount: card.initial_amount,
-                        balance: card.balance,
-                        expiry_date: card.expiry_date || null
-                    })
+                    body: JSON.stringify({ deleted_at: new Date().toISOString(), trash_source: source })
                 });
+                if (!response.ok) throw new Error(await response.text() || '移入暫存區失敗');
+                await fetchCards();
+            } catch (err) {
+                alert('移入暫存區失敗：' + err.message);
+            }
+        }
 
-                if (!response.ok) throw new Error('還原失敗');
-
-                trashData.splice(index, 1);
-                localStorage.setItem('seven_cards_trash', JSON.stringify(trashData));
-                renderTrash();
-                fetchCards();
+        async function restoreCard(index) {
+            const card = trashData[index];
+            if (!card) return;
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/seven_cards?id=eq.${encodeURIComponent(card.id)}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_PUBLISHABLE_KEY,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ deleted_at: null, trash_source: null })
+                });
+                if (!response.ok) throw new Error(await response.text() || '還原失敗');
+                await fetchCards();
                 alert('✅ 卡片已成功還原！');
             } catch (err) {
                 alert('還原失敗：' + err.message);
@@ -1205,11 +1230,19 @@
             });
         }
 
-        function clearTrash() {
-            if (confirm('確定要永久清空回收筒嗎？')) {
-                trashData = [];
-                localStorage.setItem('seven_cards_trash', JSON.stringify(trashData));
-                renderTrash();
+        async function clearTrash() {
+            if (!trashData.length) return;
+            if (!confirm(`確定要永久刪除暫存區的 ${trashData.length} 張卡片嗎？此操作無法復原。`)) return;
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/seven_cards?deleted_at=not.is.null`, {
+                    method: 'DELETE',
+                    headers: { 'apikey': SUPABASE_PUBLISHABLE_KEY, 'Prefer': 'return=minimal' }
+                });
+                if (!response.ok) throw new Error(await response.text() || '永久清空失敗');
+                await fetchCards();
+                alert('已永久清空刪除暫存區。');
+            } catch (err) {
+                alert('清空失敗：' + err.message);
             }
         }
     </script>
