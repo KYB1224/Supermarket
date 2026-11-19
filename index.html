@@ -69,6 +69,15 @@
     <main class="max-w-md mx-auto p-4 space-y-4 relative z-10">
         <!-- 分頁 1：商品卡列表頁 -->
         <div id="page-list" class="space-y-3.5">
+            <!-- 會員條碼入口 -->
+            <button type="button" onclick="openMembershipViewer()" class="w-full text-left bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-700 text-white p-4 rounded-3xl shadow-md flex items-center justify-between btn-press cursor-pointer">
+                <span class="flex items-center gap-3">
+                    <span class="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center text-2xl">▥</span>
+                    <span class="block"><span class="block text-base font-black">會員條碼</span><span id="membership-entry-status" class="block text-[11px] text-emerald-100 mt-0.5">本人會員・老婆會員｜左右滑動切換</span></span>
+                </span>
+                <span class="text-2xl font-light text-white/80">›</span>
+            </button>
+
             <div class="bg-white/95 backdrop-blur-md p-3.5 rounded-3xl shadow-sm border border-emerald-100/60 space-y-2.5">
                 <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-1 text-xs font-bold" id="filter-chips">
                     <button type="button" onclick="setFilter('all', this)" class="filter-btn px-3.5 py-1.5 rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 shrink-0 transition cursor-pointer">全部</button>
@@ -226,6 +235,34 @@
         </div>
     </main>
 
+    <!-- 會員條碼全螢幕檢視 -->
+    <div id="membership-viewer" class="fixed inset-0 bg-black/95 hidden z-[60] flex flex-col items-center justify-center p-4" ontouchstart="membershipTouchStart(event)" ontouchend="membershipTouchEnd(event)">
+        <button type="button" onclick="closeMembershipViewer()" class="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/15 text-white text-xl">✕</button>
+        <div class="w-full max-w-md text-center space-y-5">
+            <div><span class="inline-block bg-emerald-400/15 text-emerald-200 text-xs font-bold px-3 py-1 rounded-full">7-ELEVEN 會員</span><h2 id="membership-viewer-name" class="text-white text-2xl font-black mt-3">本人會員</h2><p id="membership-viewer-index" class="text-gray-400 text-xs mt-1">1 / 2</p></div>
+            <div class="bg-white rounded-2xl p-4 min-h-[170px] flex items-center justify-center overflow-hidden"><svg id="membership-barcode" class="w-full"></svg><div id="membership-empty" class="hidden text-center text-gray-400 py-8"><div class="text-4xl mb-2">▥</div><p class="font-bold">尚未設定會員條碼</p><p class="text-xs mt-1">點選下方「設定條碼」即可新增</p></div></div>
+            <div class="flex items-center justify-center gap-4">
+                <button type="button" onclick="switchMembership(-1)" class="w-12 h-12 rounded-full bg-white/10 text-white text-2xl">‹</button>
+                <span class="text-xs text-gray-400">左右滑動即可切換</span>
+                <button type="button" onclick="switchMembership(1)" class="w-12 h-12 rounded-full bg-white/10 text-white text-2xl">›</button>
+            </div>
+            <div class="flex gap-3"><button type="button" onclick="openMembershipEditor()" class="flex-1 bg-emerald-600 text-white font-bold py-3.5 rounded-2xl">設定／修改條碼</button><button type="button" onclick="deleteMembershipBarcode()" class="px-5 bg-white/10 text-white font-bold py-3.5 rounded-2xl">刪除</button></div>
+            <p class="text-[11px] text-gray-500">結帳時請將條碼完整置於掃描器前方</p>
+        </div>
+    </div>
+
+    <!-- 會員條碼編輯視窗 -->
+    <div id="membership-editor" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-[70] flex items-end sm:items-center justify-center sm:p-4">
+        <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center"><h3 id="membership-editor-title" class="font-black text-lg">設定本人會員條碼</h3><button type="button" onclick="closeMembershipEditor()" class="w-8 h-8 rounded-full bg-gray-100">✕</button></div>
+            <div><label class="block text-xs font-bold text-gray-500 mb-1">會員條碼數字／內容</label><input id="membership-input" type="text" autocomplete="off" placeholder="可手動輸入或使用下方掃描" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm font-mono focus:outline-none focus:border-emerald-600"></div>
+            <div class="grid grid-cols-2 gap-2"><button type="button" onclick="startMembershipCamera()" class="bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold py-3 rounded-xl text-sm">📷 相機掃描</button><label class="bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-sm text-center cursor-pointer">🖼️ 選擇條碼圖片<input id="membership-image-input" type="file" accept="image/*" class="hidden" onchange="scanMembershipImage(event)"></label></div>
+            <div id="membership-reader" class="hidden rounded-xl overflow-hidden"></div>
+            <div class="flex gap-2"><button type="button" onclick="stopMembershipCamera()" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm">關閉相機</button><button type="button" onclick="saveMembershipBarcode()" class="flex-[2] bg-emerald-600 text-white font-bold py-3 rounded-xl text-sm">儲存並同步</button></div>
+            <p class="text-[11px] text-gray-400">資料會同步到另一支手機；圖片只用來辨識，不會上傳保存。</p>
+        </div>
+    </div>
+
     <!-- 🔒 啟動時即全域驗證的嚴格安全 Modal -->
     <div id="pin-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4 border border-emerald-100">
@@ -352,6 +389,11 @@
         let html5QrCode = null;
         let scannerIsRunning = false;
         let wakeLock = null;
+        let membershipData = { self: '', wife: '' };
+        let currentMembershipSlot = 'self';
+        let membershipQr = null;
+        let membershipScannerIsRunning = false;
+        let membershipTouchX = null;
 
         let currentFilter = 'all';
         let currentSort = 'balance-asc';
@@ -628,11 +670,11 @@
             if ('wakeLock' in navigator) {
                 try {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    statusEl.innerText = '已啟用螢幕常亮保護，結帳時不會自動休眠';
+                    if (statusEl) statusEl.innerText = '已啟用螢幕常亮保護，結帳時不會自動休眠';
                 } catch (err) {
-                    statusEl.innerText = '瀏覽器省電模式限制，請留意螢幕休眠時間';
+                    if (statusEl) statusEl.innerText = '瀏覽器省電模式限制，請留意螢幕休眠時間';
                 }
-            } else {
+            } else if (statusEl) {
                 statusEl.innerText = '此瀏覽器不支援自動常亮，請留意螢幕休眠';
             }
         }
@@ -795,6 +837,7 @@
                 }
 
                 const allCards = await response.json();
+                await fetchMemberships();
                 // 雲端回收筒：deleted_at 有值代表移入暫存區
                 trashData = allCards.filter(card => !!card.deleted_at).sort((a, b) => new Date(b.deleted_at) - new Date(a.deleted_at));
                 cardsData = allCards.filter(card => !card.deleted_at);
@@ -832,6 +875,142 @@
                 if (refreshIcon) refreshIcon.classList.remove('animate-spin');
                 walletRefreshInProgress = false;
             }
+        }
+
+        // ===== 會員條碼：本人／老婆，兩支手機共用 Supabase 雲端資料 =====
+        const MEMBERSHIP_TABLE_URL = `${SUPABASE_URL}/rest/v1/wallet_memberships`;
+        const MEMBERSHIP_NAMES = { self: '本人會員', wife: '老婆會員' };
+
+        async function fetchMemberships() {
+            try {
+                const response = await fetch(`${MEMBERSHIP_TABLE_URL}?select=slot,barcode_value`, { headers: { 'apikey': SUPABASE_PUBLISHABLE_KEY } });
+                if (!response.ok) throw new Error(await response.text());
+                const rows = await response.json();
+                membershipData = { self: '', wife: '' };
+                rows.forEach(row => { if (row.slot === 'self' || row.slot === 'wife') membershipData[row.slot] = row.barcode_value || ''; });
+                updateMembershipEntryStatus();
+                if (!document.getElementById('membership-viewer').classList.contains('hidden')) renderMembershipBarcode();
+                return true;
+            } catch (err) {
+                console.error('會員條碼同步失敗：', err);
+                document.getElementById('membership-entry-status').innerText = '會員資料同步失敗，請確認已建立雲端資料表';
+                return false;
+            }
+        }
+
+        function updateMembershipEntryStatus() {
+            const count = [membershipData.self, membershipData.wife].filter(Boolean).length;
+            document.getElementById('membership-entry-status').innerText = `${count} / 2 組已設定｜本人會員・老婆會員`;
+        }
+
+        function openMembershipViewer() {
+            currentMembershipSlot = 'self';
+            document.getElementById('membership-viewer').classList.remove('hidden');
+            renderMembershipBarcode();
+            if (document.getElementById('membership-viewer').requestFullscreen && !document.fullscreenElement) {
+                document.getElementById('membership-viewer').requestFullscreen().catch(() => {});
+            }
+            requestWakeLock();
+        }
+
+        async function closeMembershipViewer() {
+            document.getElementById('membership-viewer').classList.add('hidden');
+            if (document.fullscreenElement && document.exitFullscreen) { try { await document.exitFullscreen(); } catch (e) {} }
+            await releaseWakeLock();
+        }
+
+        function renderMembershipBarcode() {
+            const value = membershipData[currentMembershipSlot] || '';
+            document.getElementById('membership-viewer-name').innerText = MEMBERSHIP_NAMES[currentMembershipSlot];
+            document.getElementById('membership-viewer-index').innerText = currentMembershipSlot === 'self' ? '1 / 2' : '2 / 2';
+            const svg = document.getElementById('membership-barcode');
+            const empty = document.getElementById('membership-empty');
+            if (!value) { svg.classList.add('hidden'); empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden'); svg.classList.remove('hidden');
+            try { JsBarcode(svg, value, { format: 'CODE128', lineColor: '#000000', background: '#ffffff', width: 2.4, height: 115, displayValue: true, fontOptions: 'bold', fontSize: 15, textMargin: 7, margin: 12 }); }
+            catch (err) { console.error('會員條碼繪製失敗', err); alert('這組條碼內容無法產生，請檢查輸入內容。'); }
+        }
+
+        function switchMembership(direction) {
+            currentMembershipSlot = direction > 0 ? (currentMembershipSlot === 'self' ? 'wife' : 'self') : (currentMembershipSlot === 'wife' ? 'self' : 'wife');
+            renderMembershipBarcode();
+        }
+        function membershipTouchStart(event) { membershipTouchX = event.changedTouches?.[0]?.clientX ?? null; }
+        function membershipTouchEnd(event) {
+            if (membershipTouchX === null) return;
+            const dx = (event.changedTouches?.[0]?.clientX ?? membershipTouchX) - membershipTouchX;
+            if (Math.abs(dx) > 55) switchMembership(dx < 0 ? 1 : -1);
+            membershipTouchX = null;
+        }
+
+        function openMembershipEditor() {
+            document.getElementById('membership-editor-title').innerText = `設定${MEMBERSHIP_NAMES[currentMembershipSlot]}條碼`;
+            document.getElementById('membership-input').value = membershipData[currentMembershipSlot] || '';
+            document.getElementById('membership-editor').classList.remove('hidden');
+        }
+        async function closeMembershipEditor() {
+            await stopMembershipCamera();
+            document.getElementById('membership-editor').classList.add('hidden');
+        }
+
+        async function saveMembershipBarcode() {
+            const value = document.getElementById('membership-input').value.trim();
+            if (!value) { alert('請先輸入或掃描會員條碼。'); return; }
+            if (value.length > 80) { alert('條碼內容過長，請重新確認。'); return; }
+            try {
+                const response = await fetch(`${MEMBERSHIP_TABLE_URL}?on_conflict=slot`, {
+                    method: 'POST',
+                    headers: { 'apikey': SUPABASE_PUBLISHABLE_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+                    body: JSON.stringify({ slot: currentMembershipSlot, barcode_value: value, updated_at: new Date().toISOString() })
+                });
+                if (!response.ok) throw new Error(await response.text());
+                membershipData[currentMembershipSlot] = value;
+                updateMembershipEntryStatus();
+                await closeMembershipEditor();
+                renderMembershipBarcode();
+                alert('會員條碼已儲存並同步到雲端。');
+            } catch (err) { console.error(err); alert('會員條碼儲存失敗：' + err.message); }
+        }
+
+        async function deleteMembershipBarcode() {
+            if (!membershipData[currentMembershipSlot]) return;
+            try {
+                const response = await fetch(`${MEMBERSHIP_TABLE_URL}?slot=eq.${currentMembershipSlot}`, { method: 'DELETE', headers: { 'apikey': SUPABASE_PUBLISHABLE_KEY } });
+                if (!response.ok) throw new Error(await response.text());
+                membershipData[currentMembershipSlot] = '';
+                updateMembershipEntryStatus();
+                renderMembershipBarcode();
+            } catch (err) { alert('刪除會員條碼失敗：' + err.message); }
+        }
+
+        async function startMembershipCamera() {
+            const reader = document.getElementById('membership-reader');
+            reader.classList.remove('hidden');
+            try {
+                if (!membershipQr) membershipQr = new Html5Qrcode('membership-reader', { formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.ITF, Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8, Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E], verbose: false });
+                await membershipQr.start({ facingMode: 'environment' }, { fps: 12, qrbox: { width: 280, height: 120 } }, (decoded) => {
+                    document.getElementById('membership-input').value = String(decoded || '').trim();
+                    if (navigator.vibrate) navigator.vibrate(80);
+                    stopMembershipCamera();
+                }, () => {});
+                membershipScannerIsRunning = true;
+            } catch (err) { console.error(err); alert('無法開啟相機，請確認相機權限並使用 HTTPS 網址。'); await stopMembershipCamera(); }
+        }
+        async function stopMembershipCamera() {
+            if (membershipQr && membershipScannerIsRunning) { try { await membershipQr.stop(); } catch (e) {} }
+            membershipScannerIsRunning = false;
+            document.getElementById('membership-reader').classList.add('hidden');
+        }
+        async function scanMembershipImage(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            try {
+                if (!membershipQr) membershipQr = new Html5Qrcode('membership-reader', { formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.ITF, Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8, Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E], verbose: false });
+                const decoded = await membershipQr.scanFile(file, true);
+                document.getElementById('membership-input').value = String(decoded || '').trim();
+                alert('圖片辨識成功，請確認條碼內容後儲存。');
+            } catch (err) { alert('圖片中未能辨識出支援的一維條碼，請改用相機掃描或手動輸入。'); }
+            finally { event.target.value = ''; }
         }
 
         function updateStats() {
