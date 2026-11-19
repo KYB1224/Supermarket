@@ -73,7 +73,7 @@
             <button type="button" onclick="openMembershipViewer()" class="w-full text-left bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-700 text-white p-4 rounded-3xl shadow-md flex items-center justify-between btn-press cursor-pointer">
                 <span class="flex items-center gap-3">
                     <span class="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center text-2xl">▥</span>
-                    <span class="block"><span class="block text-base font-black">會員條碼</span><span id="membership-entry-status" class="block text-[11px] text-emerald-100 mt-0.5">本人會員・老婆會員｜左右滑動切換</span></span>
+                    <span class="block text-base font-black">會員條碼</span><span id="membership-entry-status" class="hidden"></span>
                 </span>
                 <span class="text-2xl font-light text-white/80">›</span>
             </button>
@@ -239,7 +239,7 @@
     <div id="membership-viewer" class="fixed inset-0 bg-black/95 hidden z-[60] flex flex-col items-center justify-center p-4" ontouchstart="membershipTouchStart(event)" ontouchend="membershipTouchEnd(event)">
         <button type="button" onclick="closeMembershipViewer()" class="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/15 text-white text-xl">✕</button>
         <div class="w-full max-w-md text-center space-y-5">
-            <div><span class="inline-block bg-emerald-400/15 text-emerald-200 text-xs font-bold px-3 py-1 rounded-full">7-ELEVEN 會員</span><h2 id="membership-viewer-name" class="text-white text-2xl font-black mt-3">本人會員</h2><p id="membership-viewer-index" class="text-gray-400 text-xs mt-1">1 / 2</p></div>
+            <div><span class="inline-block bg-emerald-400/15 text-emerald-200 text-xs font-bold px-3 py-1 rounded-full">7-ELEVEN 會員</span><h2 id="membership-viewer-name" class="text-white text-2xl font-black mt-3">老大會員</h2><p id="membership-viewer-index" class="text-gray-400 text-xs mt-1">1 / 2</p></div>
             <div class="bg-white rounded-2xl p-4 min-h-[170px] flex items-center justify-center overflow-hidden"><svg id="membership-barcode" class="w-full"></svg><div id="membership-empty" class="hidden text-center text-gray-400 py-8"><div class="text-4xl mb-2">▥</div><p class="font-bold">尚未設定會員條碼</p><p class="text-xs mt-1">點選下方「設定條碼」即可新增</p></div></div>
             <div class="flex items-center justify-center gap-4">
                 <button type="button" onclick="switchMembership(-1)" class="w-12 h-12 rounded-full bg-white/10 text-white text-2xl">‹</button>
@@ -254,7 +254,7 @@
     <!-- 會員條碼編輯視窗 -->
     <div id="membership-editor" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-[70] flex items-end sm:items-center justify-center sm:p-4">
         <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center"><h3 id="membership-editor-title" class="font-black text-lg">設定本人會員條碼</h3><button type="button" onclick="closeMembershipEditor()" class="w-8 h-8 rounded-full bg-gray-100">✕</button></div>
+            <div class="flex justify-between items-center"><h3 id="membership-editor-title" class="font-black text-lg">設定老大會員條碼</h3><button type="button" onclick="closeMembershipEditor()" class="w-8 h-8 rounded-full bg-gray-100">✕</button></div>
             <div><label class="block text-xs font-bold text-gray-500 mb-1">會員條碼數字／內容</label><input id="membership-input" type="text" autocomplete="off" placeholder="可手動輸入或使用下方掃描" class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-3.5 text-sm font-mono focus:outline-none focus:border-emerald-600"></div>
             <div class="grid grid-cols-2 gap-2"><button type="button" onclick="startMembershipCamera()" class="bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold py-3 rounded-xl text-sm">📷 相機掃描</button><label class="bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-sm text-center cursor-pointer">🖼️ 選擇條碼圖片<input id="membership-image-input" type="file" accept="image/*" class="hidden" onchange="scanMembershipImage(event)"></label></div>
             <div id="membership-reader" class="hidden rounded-xl overflow-hidden"></div>
@@ -519,6 +519,8 @@
                 sessionStorage.setItem(WALLET_SECURITY_SESSION_KEY, result.session);
                 document.getElementById('pin-modal').classList.add('hidden');
                 input.value = '';
+                input.blur();
+                setTimeout(() => window.scrollTo({ top: 0, behavior: 'instant' }), 80);
             } catch (err) {
                 if (err.message === 'not_initialized') {
                     const setupSecret = prompt('首次啟用雲端 PIN，請輸入你在 Supabase Secrets 設定的 WALLET_SETUP_SECRET。');
@@ -536,6 +538,8 @@
                         sessionStorage.setItem(WALLET_SECURITY_SESSION_KEY, verified.session);
                         document.getElementById('pin-modal').classList.add('hidden');
                         input.value = '';
+                        input.blur();
+                        setTimeout(() => window.scrollTo({ top: 0, behavior: 'instant' }), 80);
                     } catch (initErr) {
                         alert('雲端 PIN 初始化失敗：' + initErr.message);
                         input.value = '';
@@ -638,6 +642,7 @@
 
             if (tab === 'list') {
                 pageList.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'instant' });
                 headerTitle.innerText = '商品卡列表';
                 navList.className = activeClass;
                 stopScanner();
@@ -877,9 +882,9 @@
             }
         }
 
-        // ===== 會員條碼：本人／老婆，兩支手機共用 Supabase 雲端資料 =====
+        // ===== 會員條碼：老大／老婆，兩支手機共用 Supabase 雲端資料 =====
         const MEMBERSHIP_TABLE_URL = `${SUPABASE_URL}/rest/v1/wallet_memberships`;
-        const MEMBERSHIP_NAMES = { self: '本人會員', wife: '老婆會員' };
+        const MEMBERSHIP_NAMES = { self: '老大會員', wife: '老婆會員' };
 
         async function fetchMemberships() {
             try {
@@ -900,7 +905,7 @@
 
         function updateMembershipEntryStatus() {
             const count = [membershipData.self, membershipData.wife].filter(Boolean).length;
-            document.getElementById('membership-entry-status').innerText = `${count} / 2 組已設定｜本人會員・老婆會員`;
+            document.getElementById('membership-entry-status').innerText = `${count} / 2 組已設定｜老大會員・老婆會員`;
         }
 
         function openMembershipViewer() {
@@ -974,6 +979,8 @@
 
         async function deleteMembershipBarcode() {
             if (!membershipData[currentMembershipSlot]) return;
+            const memberName = MEMBERSHIP_NAMES[currentMembershipSlot];
+            if (!confirm(`確定要刪除「${memberName}」的會員條碼嗎？\n刪除後會同步到另一支手機。`)) return;
             try {
                 const response = await fetch(`${MEMBERSHIP_TABLE_URL}?slot=eq.${currentMembershipSlot}`, { method: 'DELETE', headers: { 'apikey': SUPABASE_PUBLISHABLE_KEY } });
                 if (!response.ok) throw new Error(await response.text());
