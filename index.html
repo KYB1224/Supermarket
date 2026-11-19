@@ -69,13 +69,31 @@
     <main class="max-w-md mx-auto p-4 space-y-4 relative z-10">
         <!-- 分頁 1：商品卡列表頁 -->
         <div id="page-list" class="space-y-3.5">
-            <!-- 會員條碼入口 -->
-            <button type="button" onclick="openMembershipViewer()" class="w-full text-left bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-700 text-white p-4 rounded-3xl shadow-md flex items-center justify-between btn-press cursor-pointer">
-                <span class="flex items-center gap-3">
-                    <span class="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center text-2xl">▥</span>
-                    <span class="block text-base font-black">會員條碼</span><span id="membership-entry-status" class="hidden"></span>
+            <!-- 會員條碼入口：精緻會員通行卡 -->
+            <button type="button" onclick="openMembershipViewer()" aria-label="開啟會員條碼" class="group relative w-full overflow-hidden text-left rounded-[26px] p-3.5 flex items-center justify-between border border-emerald-900/10 bg-gradient-to-br from-[#ffffff] via-[#f4faf7] to-[#e7f3ed] shadow-[0_8px_22px_rgba(16,80,58,0.10)] btn-press cursor-pointer transition-all duration-200 active:scale-[0.985]">
+                <span class="absolute -right-5 -top-8 w-32 h-32 rounded-full bg-emerald-600/[0.045]"></span>
+                <span class="absolute right-16 -bottom-12 w-28 h-28 rounded-full bg-teal-500/[0.05]"></span>
+                <span class="relative flex items-center gap-3.5 min-w-0">
+                    <span class="relative w-[50px] h-[50px] shrink-0 rounded-[18px] bg-gradient-to-br from-emerald-700 via-emerald-700 to-teal-800 text-white flex items-center justify-center shadow-lg shadow-emerald-900/20">
+                        <svg viewBox="0 0 32 32" class="w-7 h-7" fill="none" aria-hidden="true">
+                            <path d="M4 7v18M7 7v18M11 7v18M14 7v18M19 7v18M22 7v18M25 7v18M28 7v18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                            <path d="M3 4.5h26v23H3z" stroke="currentColor" stroke-opacity=".35" stroke-width="1.2" rx="3"/>
+                        </svg>
+                        <span class="absolute -right-1 -bottom-1 w-4 h-4 rounded-full bg-amber-400 border-[2.5px] border-[#f2f8f4]"></span>
+                    </span>
+                    <span class="relative flex flex-col gap-1 min-w-0">
+                        <span class="text-[10px] leading-none font-extrabold tracking-[0.19em] text-emerald-700/65">MEMBERSHIP PASS</span>
+                        <span class="text-[17px] leading-tight font-black tracking-wide text-slate-800">會員條碼</span>
+                        <span class="flex items-center gap-1.5 mt-0.5" aria-hidden="true">
+                            <span class="inline-flex items-center justify-center min-w-[25px] h-[19px] px-1.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black">大</span>
+                            <span class="inline-flex items-center justify-center min-w-[25px] h-[19px] px-1.5 rounded-md bg-rose-100 text-rose-700 text-[10px] font-black">妻</span>
+                        </span>
+                        <span id="membership-entry-status" class="hidden"></span>
+                    </span>
                 </span>
-                <span class="text-2xl font-light text-white/80">›</span>
+                <span class="relative ml-3 w-9 h-9 shrink-0 rounded-full bg-white/85 border border-emerald-900/[0.07] text-emerald-800 flex items-center justify-center shadow-sm group-hover:bg-emerald-700 group-hover:text-white transition-colors duration-200">
+                    <svg viewBox="0 0 20 20" class="w-4 h-4" fill="none" aria-hidden="true"><path d="m7.5 4.5 5.5 5.5-5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
             </button>
 
             <div class="bg-white/95 backdrop-blur-md p-3.5 rounded-3xl shadow-sm border border-emerald-100/60 space-y-2.5">
