@@ -194,15 +194,15 @@
             <!-- 🔐 結帳安全解鎖密碼設定 -->
             <div class="bg-white rounded-3xl p-5 shadow-md shadow-gray-200/50 border border-emerald-100/60 space-y-3">
                 <h3 class="font-bold text-base text-gray-800 flex items-center gap-2"><span>🔐</span> 結帳安全驗證密碼</h3>
-                <p class="text-xs text-gray-400">忘記舊密碼可輸入預設密碼</p>
+                <p class="text-xs text-gray-400">忘記密碼時，請使用一次性救援碼重設。</p>
                 <form id="password-form" class="space-y-3">
                     <div>
                         <label class="block text-[11px] font-bold text-gray-500 mb-1">請輸入目前舊密碼</label>
                         <input type="password" id="old-password" inputmode="numeric" placeholder="目前密碼" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-3.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-bold text-gray-500 mb-1">請輸入新密碼</label>
-                        <input type="password" id="new-password" inputmode="numeric" placeholder="新密碼" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-3.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
+                        <label class="block text-[11px] font-bold text-gray-500 mb-1">請輸入新 PIN（4～12 位數字）</label>
+                        <input type="password" id="new-password" inputmode="numeric" placeholder="新 PIN（4～12 位數字）" required class="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-3.5 text-sm font-mono focus:outline-none focus:border-emerald-600 focus:bg-white transition shadow-inner">
                     </div>
                     <button type="submit" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-2xl text-xs shadow-md btn-press cursor-pointer">
                         確認更新驗證密碼
@@ -409,26 +409,7 @@
                 if (e.key === 'Enter') submitGlobalPin();
             });
 
-            document.getElementById('password-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const oldPwdInput = document.getElementById('old-password').value.trim();
-                const newPwdInput = document.getElementById('new-password').value.trim();
-                const currentSavedPwd = localStorage.getItem('seven_wallet_pwd') || '711';
-                // 允許使用目前密碼，或固定預設密碼 711，進行密碼更新
-                const isAuthorized = oldPwdInput === currentSavedPwd || oldPwdInput === '711';
-
-                if (isAuthorized) {
-                    if (newPwdInput) {
-                        localStorage.setItem('seven_wallet_pwd', newPwdInput);
-                        alert('✅ 結帳安全驗證密碼已成功更新！');
-                        document.getElementById('old-password').value = '';
-                        document.getElementById('new-password').value = '';
-                    }
-                } else {
-                    alert('⚠️ 舊密碼輸入錯誤！');
-                    document.getElementById('old-password').value = '';
-                }
-            });
+            document.getElementById('password-form').addEventListener('submit', changeWalletPin);
 
             document.getElementById('btn-close-barcode').addEventListener('click', closeBarcodeModal);
             document.getElementById('btn-close-barcode-bottom').addEventListener('click', closeBarcodeModal);
@@ -452,33 +433,117 @@
             renderTrash();
         });
 
-        function submitGlobalPin() {
-            const savedPassword = localStorage.getItem('seven_wallet_pwd') || '711';
-            const inputVal = document.getElementById('pin-input').value;
+        // ===== 雲端 PIN 驗證 =====
+        const WALLET_SECURITY_URL = `${SUPABASE_URL}/functions/v1/wallet-security`;
+        const WALLET_SECURITY_SESSION_KEY = 'seven_wallet_pin_session';
 
-            if (inputVal === savedPassword) {
+        async function walletSecurityRequest(payload) {
+            const response = await fetch(WALLET_SECURITY_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_PUBLISHABLE_KEY
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || `伺服器錯誤 (${response.status})`);
+            return data;
+        }
+
+        function showRecoveryCodeOnce(code) {
+            // 只顯示一次，不寫入 localStorage 或雲端明文
+            alert('請立即抄下並妥善保存這組一次性救援碼：\n\n' + code + '\n\n離開此視窗後無法再次查詢；使用後會自動換發新碼。');
+        }
+
+        async function submitGlobalPin() {
+            const input = document.getElementById('pin-input');
+            const pin = input.value.trim();
+            if (!/^\d{3,12}$/.test(pin)) {
+                alert('PIN 請輸入 3～12 位數字。');
+                input.focus();
+                return;
+            }
+            try {
+                const result = await walletSecurityRequest({ action: 'verify', pin });
+                sessionStorage.setItem(WALLET_SECURITY_SESSION_KEY, result.session);
                 document.getElementById('pin-modal').classList.add('hidden');
-            } else {
-                alert('⚠️ 密碼錯誤！');
-                document.getElementById('pin-input').value = '';
-                document.getElementById('pin-input').focus();
+                input.value = '';
+            } catch (err) {
+                if (err.message === 'not_initialized') {
+                    const setupSecret = prompt('首次啟用雲端 PIN，請輸入你在 Supabase Secrets 設定的 WALLET_SETUP_SECRET。');
+                    if (setupSecret === null || !setupSecret.trim()) return;
+                    const initialPin = prompt('請輸入目前錢包使用的 PIN。你先前確認為預設 711。', '711');
+                    if (initialPin === null) return;
+                    try {
+                        const initialized = await walletSecurityRequest({
+                            action: 'initialize',
+                            setupSecret: setupSecret.trim(),
+                            pin: initialPin.trim()
+                        });
+                        showRecoveryCodeOnce(initialized.recoveryCode);
+                        const verified = await walletSecurityRequest({ action: 'verify', pin: initialPin.trim() });
+                        sessionStorage.setItem(WALLET_SECURITY_SESSION_KEY, verified.session);
+                        document.getElementById('pin-modal').classList.add('hidden');
+                        input.value = '';
+                    } catch (initErr) {
+                        alert('雲端 PIN 初始化失敗：' + initErr.message);
+                        input.value = '';
+                    }
+                    return;
+                }
+                alert('驗證失敗：' + err.message);
+                input.value = '';
+                input.focus();
             }
         }
 
-        function forgotPassword() {
-            const securityCode = prompt('請輸入預設解鎖數字：');
-            if (securityCode === null) return;
+        async function changeWalletPin(e) {
+            e.preventDefault();
+            const oldPin = document.getElementById('old-password').value.trim();
+            const newPin = document.getElementById('new-password').value.trim();
+            if (!/^\d{4,12}$/.test(newPin)) {
+                alert('新 PIN 必須是 4～12 位數字。');
+                return;
+            }
+            const session = sessionStorage.getItem(WALLET_SECURITY_SESSION_KEY) || '';
+            if (!session) {
+                alert('目前驗證工作階段不存在，請重新整理頁面並輸入 PIN 後再修改。');
+                return;
+            }
+            try {
+                await walletSecurityRequest({ action: 'change', session, oldPin, newPin });
+                sessionStorage.removeItem(WALLET_SECURITY_SESSION_KEY);
+                document.getElementById('old-password').value = '';
+                document.getElementById('new-password').value = '';
+                alert('雲端 PIN 已更新。兩支手機下次解鎖都必須使用新 PIN。請重新整理頁面並用新 PIN 解鎖。');
+                location.reload();
+            } catch (err) {
+                alert('PIN 更新失敗：' + err.message);
+            }
+        }
 
-            if (securityCode === '711') {
-                const newPin = prompt('身分驗證成功！請輸入您的「新解鎖密碼」：');
-                if (newPin && newPin.trim() !== '') {
-                    localStorage.setItem('seven_wallet_pwd', newPin.trim());
-                    alert('✅ 密碼重設成功！請使用新密碼登入。');
-                    document.getElementById('pin-input').value = '';
-                    document.getElementById('pin-input').focus();
-                }
-            } else {
-                alert('⚠️ 解鎖數字錯誤，無法重設密碼！');
+        async function forgotPassword() {
+            const recoveryCode = prompt('請輸入你保存的一次性救援碼：');
+            if (recoveryCode === null || !recoveryCode.trim()) return;
+            const newPin = prompt('請設定新 PIN（4～12 位數字）：');
+            if (newPin === null) return;
+            if (!/^\d{4,12}$/.test(newPin.trim())) {
+                alert('新 PIN 必須是 4～12 位數字。');
+                return;
+            }
+            try {
+                const result = await walletSecurityRequest({
+                    action: 'recover',
+                    recoveryCode: recoveryCode.trim(),
+                    newPin: newPin.trim()
+                });
+                showRecoveryCodeOnce(result.recoveryCode);
+                alert('PIN 已重設成功，舊救援碼已失效。請使用新 PIN 解鎖。');
+                document.getElementById('pin-input').value = '';
+                document.getElementById('pin-input').focus();
+            } catch (err) {
+                alert('救援失敗：' + err.message);
             }
         }
 
